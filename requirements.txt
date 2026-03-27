@@ -4,12 +4,13 @@ Flask-SQLAlchemy==3.1.1
 
 # Auth
 Authlib==1.4.1
+requests>=2.32.0
 
 # Image processing
 Pillow==11.1.0
 
 # Turso / libSQL (SQLite-compatible driver)
-libsql-experimental==0.0.17
+libsql-experimental==0.0.55
 
 # Production server
 gunicorn==23.0.0
