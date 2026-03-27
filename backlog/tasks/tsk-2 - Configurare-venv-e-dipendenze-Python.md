@@ -1,9 +1,10 @@
 ---
 id: TSK-2
 title: Configurare venv e dipendenze Python
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-27 13:23'
+updated_date: '2026-03-27 14:09'
 labels:
   - fase-1
   - setup
@@ -21,7 +22,7 @@ Configurare il virtual environment Python, installare le dipendenze e verificare
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 venv Python 3.10+ creato e documentato nel README
-- [ ] #2 requirements.txt installabile senza errori con pip install -r requirements.txt
-- [ ] #3 Flask app avviabile con flask run mostrando pagina placeholder
+- [x] #1 venv Python 3.10+ creato e documentato nel README
+- [x] #2 requirements.txt installabile senza errori con pip install -r requirements.txt
+- [x] #3 Flask app avviabile con flask run mostrando pagina placeholder
 <!-- AC:END -->
