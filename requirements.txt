@@ -1,0 +1,18 @@
+# Flask
+Flask==3.1.0
+Flask-SQLAlchemy==3.1.1
+
+# Auth
+Authlib==1.4.1
+
+# Image processing
+Pillow==11.1.0
+
+# Turso / libSQL (SQLite-compatible driver)
+libsql-experimental==0.0.17
+
+# Production server
+gunicorn==23.0.0
+
+# Env
+python-dotenv==1.1.0
