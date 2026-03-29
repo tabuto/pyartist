@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: pyartist-backoffice
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --chdir backoffice app:app
+    plan: free
+
+    envVars:
+      # ── Flask ──────────────────────────────────────────
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+
+      # ── Google OAuth2 ──────────────────────────────────
+      - key: FLASK_GOOGLE_CLIENT_ID
+        sync: false
+      - key: FLASK_GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # ── Turso / libSQL ─────────────────────────────────
+      - key: TURSO_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+
+      # ── Google Drive API ───────────────────────────────
+      - key: GOOGLE_SERVICE_ACCOUNT_FILE
+        value: credentials/service_account.json
+      - key: GOOGLE_DRIVE_ROOT_FOLDER_ID
+        sync: false
+
+      # ── FTP ────────────────────────────────────────────
+      - key: FTP_HOST
+        sync: false
+      - key: FTP_PORT
+        value: "21"
+      - key: FTP_USER
+        sync: false
+      - key: FTP_PASSWORD
+        sync: false
+      - key: FTP_REMOTE_BASE_PATH
+        value: /public_html
+      - key: FTP_IMAGES_PATH
+        value: /public_html/img/art
+      - key: FTP_GALLERY_JSON_PATH
+        value: /public_html/data/gallery.json
+      - key: FTP_USE_TLS
+        value: "true"
+
+      # ── Backoffice access ──────────────────────────────
+      - key: ALLOWED_EMAIL
+        sync: false
