@@ -2,8 +2,9 @@ services:
   - type: web
     name: pyartist-backoffice
     runtime: python
+    rootDir: backoffice
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --chdir backoffice app:app
+    startCommand: gunicorn app:app
     plan: free
 
     envVars:
