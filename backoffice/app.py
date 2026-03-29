@@ -52,7 +52,8 @@ def create_app():
             _raw_conn = libsql.connect(
                 "pyartist.db", sync_url=turso_url, auth_token=turso_token
             )
-            _raw_conn.sync()
+            # Non eseguire sync() allo startup: blocca il worker di gunicorn.
+            # La sync avviene in teardown_appcontext dopo ogni request.
             _wrapped = _LibSQLWrapper(_raw_conn)
 
             app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite+pysqlite://"
