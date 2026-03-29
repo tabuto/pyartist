@@ -8,6 +8,10 @@ services:
     plan: free
 
     envVars:
+      # ── Python version (wheel pre-compilate per libsql-experimental) ──
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+
       # ── Flask ──────────────────────────────────────────
       - key: FLASK_SECRET_KEY
         generateValue: true
