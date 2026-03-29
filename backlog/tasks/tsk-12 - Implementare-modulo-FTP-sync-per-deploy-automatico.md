@@ -17,15 +17,17 @@ ordinal: 12000
 ## Description
 
 <!-- SECTION:DESCRIPTION:BEGIN -->
-Implementare il modulo FTP sync in sync_engine.py per il caricamento automatico di immagini, gallery.json e file .md sul server di hosting tramite FTP.
+Implementare il modulo FTP sync in sync_engine.py per il caricamento di immagini (scaricate da Google Drive), gallery.json e file .md sul server di hosting tramite FTP/FTPS. Le immagini vengono organizzate in sotto-cartelle per categoria (/img/art/{categoria}/). Tutte le credenziali e i percorsi sono configurabili tramite variabili d'ambiente.
 <!-- SECTION:DESCRIPTION:END -->
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 ftp_sync() si connette al server FTP tramite credenziali da variabili d'ambiente (FTP_HOST, FTP_USER, FTP_PASS, FTP_PATH)
-- [ ] #2 Carica le immagini ottimizzate e le thumbnail nella cartella /img/art/ del server
-- [ ] #3 Carica il file gallery.json aggiornato nella cartella /data/ del server
-- [ ] #4 Carica eventuali file .md modificati nella cartella /content/ del server
-- [ ] #5 Log dell'operazione di sync con esito (successo/errore per file)
-- [ ] #6 Pulsante 'Pubblica e Sincronizza' nella dashboard attiva il processo completo
+- [ ] #1 ftp_sync() si connette al server FTP tramite le variabili d'ambiente: FTP_HOST, FTP_PORT, FTP_USER, FTP_PASSWORD, FTP_USE_TLS
+- [ ] #2 Crea automaticamente le sotto-cartelle per categoria in FTP_IMAGES_PATH/{categoria}/ se non esistono
+- [ ] #3 Carica le immagini ottimizzate e le thumbnail nella struttura FTP_IMAGES_PATH/{categoria}/
+- [ ] #4 Carica il file gallery.json nel percorso FTP_GALLERY_JSON_PATH
+- [ ] #5 Carica eventuali file .md modificati nella cartella /content/ del server
+- [ ] #6 Supporto FTPS (TLS) attivabile tramite FTP_USE_TLS=true
+- [ ] #7 Log dell'operazione di sync con esito (successo/errore per file)
+- [ ] #8 I file immagine da caricare vengono forniti come stream scaricati da Google Drive tramite drive.py (nessun file temporaneo locale obbligatorio)
 <!-- AC:END -->
