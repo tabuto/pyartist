@@ -9,8 +9,11 @@ requests>=2.32.0
 # Image processing
 Pillow==11.1.0
 
-# Turso / libSQL (SQLite-compatible driver)
+# Turso / libSQL
+# libsql-experimental: driver nativo SQLite-compatibile (richiede Python <=3.12 e wheel pre-compilata)
 libsql-experimental==0.0.55
+# libsql-client: client HTTP puro Python per query dirette a Turso (nessuna compilazione Rust)
+libsql-client==0.3.0
 
 # Production server
 gunicorn==23.0.0
