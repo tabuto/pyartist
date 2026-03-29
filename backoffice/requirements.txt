@@ -9,9 +9,8 @@ requests>=2.32.0
 # Image processing
 Pillow==11.1.0
 
-# Turso / libSQL — driver HTTP puro Python, nessuna compilazione Rust
+# Turso / libSQL — dialetto SQLAlchemy; auth_token passato via connect_args (non nel URL)
 sqlalchemy-libsql==0.2.0
-libsql-client==0.3.0
 
 # Production server
 gunicorn==23.0.0

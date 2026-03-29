@@ -2,22 +2,36 @@ import os
 from flask import Flask, render_template_string
 from models import db
 from oauth import configure_oauth
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+# override=True: sovrascrive sempre le env vars con i valori del .env
+load_dotenv(find_dotenv(), override=True)
 
 
-def _turso_uri() -> str:
-    """Costruisce l'URI SQLAlchemy per Turso da TURSO_URL + TURSO_AUTH_TOKEN."""
+def _turso_engine_config():
+    """Restituisce (uri, engine_options) per Turso.
+    auth_token viene passato come connect_arg — SQLAlchemy lo inietta come
+    keyword arg direttamente a libsql_experimental.connect(), bypssando il bug
+    del dialetto sqlalchemy-libsql con l'URL encoding dei valori tuple."""
+    from sqlalchemy.engine import URL
+
     url = os.environ.get("TURSO_URL", "")
     token = os.environ.get("TURSO_AUTH_TOKEN", "")
     if not url or not token:
         raise RuntimeError(
-            "Variabili d'ambiente mancanti: TURSO_URL e TURSO_AUTH_TOKEN sono obbligatorie."
+            "Variabili mancanti: TURSO_URL e TURSO_AUTH_TOKEN sono obbligatorie."
         )
-    # Converte libsql://host → libsql+https://host?authToken=TOKEN
     host = url.replace("libsql://", "")
-    return f"libsql+https://{host}?authToken={token}"
+
+    db_uri = URL.create(
+        drivername="sqlite+libsql",
+        host=host,
+        query={"secure": "true"},   # authToken NON nel URL: evita bug urlencode tuple
+    )
+    engine_opts = {
+        "connect_args": {"auth_token": token},
+    }
+    return db_uri, engine_opts
 
 
 def create_app():
@@ -26,8 +40,10 @@ def create_app():
     # Legge FLASK_* da .env (es. FLASK_SECRET_KEY)
     app.config.from_prefixed_env()
 
-    # ── Database: Turso via sqlalchemy-libsql (HTTP, no Rust) ─────────────────
-    app.config["SQLALCHEMY_DATABASE_URI"] = _turso_uri()
+    # ── Database: Turso via sqlalchemy-libsql ────────────────────────────────
+    db_uri, engine_opts = _turso_engine_config()
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_opts
     # ─────────────────────────────────────────────────────────────────────────
 
     db.init_app(app)
