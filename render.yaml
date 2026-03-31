@@ -4,7 +4,7 @@ services:
     runtime: python
     rootDir: backoffice
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 1 --timeout 120
+    startCommand: gunicorn app:app --workers 1 --timeout 120 --bind 0.0.0.0:$PORT
     plan: free
 
     envVars:
@@ -14,7 +14,7 @@ services:
 
       # ── Flask ──────────────────────────────────────────
       - key: FLASK_SECRET_KEY
-        generateValue: true
+        sync: false
 
       # ── Google OAuth2 ──────────────────────────────────
       - key: FLASK_GOOGLE_CLIENT_ID
