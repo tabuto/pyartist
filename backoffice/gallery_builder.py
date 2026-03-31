@@ -16,20 +16,34 @@ logger = logging.getLogger(__name__)
 
 
 def generate_gallery_json(gallery: Gallery) -> dict:
-    """Build structured gallery JSON, write to website/data/gallery.json, return dict."""
-    categories: dict[str, list] = {}
+    """Build structured gallery JSON, write to website/data/gallery.json, return dict.
 
-    for item in gallery.items:
+    Le categorie sono ordinate per Category.position (poi alphabeticamente come fallback).
+    All'interno di ogni categoria le opere rispettano l'ordinamento GalleryItem.position.
+    """
+    from models import Category
+
+    # Mappa slug → position (per ordinare le categorie nella struttura finale)
+    cat_positions: dict[str, int] = {
+        c.slug: c.position
+        for c in Category.query.order_by(Category.position).all()
+    }
+
+    categories: dict[str, list] = {}
+    for item in sorted(gallery.items, key=lambda i: i.position):
         artwork = item.artwork
-        cat_name = artwork.category
-        categories.setdefault(cat_name, [])
-        categories[cat_name].append(artwork.to_dict())
+        cat_slug = _slugify(artwork.category)
+        categories.setdefault(cat_slug, [])
+        categories[cat_slug].append(artwork.to_dict())
+
+    def _cat_sort_key(cat_slug: str) -> tuple[int, str]:
+        return (cat_positions.get(cat_slug, 9999), cat_slug)
 
     data = {
         "gallery_name": gallery.name,
         "categories": [
-            {"name": cat, "slug": _slugify(cat), "items": items}
-            for cat, items in categories.items()
+            {"name": _cat_display_name(cat_slug, gallery), "slug": cat_slug, "items": items}
+            for cat_slug, items in sorted(categories.items(), key=lambda kv: _cat_sort_key(kv[0]))
         ],
     }
 
@@ -41,17 +55,22 @@ def generate_gallery_json(gallery: Gallery) -> dict:
 
 
 def build_zip(gallery: Gallery) -> io.BytesIO:
-    """Build a ZIP archive with gallery.json + artwork images from Drive."""
-    from drive import DriveClient
+    """Build a ZIP archive with gallery.json + artwork images from Cloudinary.
 
-    client = DriveClient()
+    Struttura ZIP:
+        data/gallery.json
+        img/art/{categoria}/{titolo-id}.jpg
+        img/art/{categoria}/thumb_{titolo-id}.jpg
+    """
+    import requests
+
     gallery_data = generate_gallery_json(gallery)
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("data/gallery.json", json.dumps(gallery_data, ensure_ascii=False, indent=2))
 
-        for item in gallery.items:
+        for item in sorted(gallery.items, key=lambda i: i.position):
             artwork = item.artwork
             slug = _slugify(artwork.category)
             title_slug = _slugify(artwork.title)
@@ -59,11 +78,12 @@ def build_zip(gallery: Gallery) -> io.BytesIO:
 
             if artwork.drive_file_id:
                 try:
-                    img_bytes = client.download_file(artwork.drive_file_id)
-                    zf.writestr(f"img/art/{slug}/{filename}.jpg", img_bytes.read())
+                    resp = requests.get(artwork.drive_file_id, timeout=30)
+                    resp.raise_for_status()
+                    zf.writestr(f"img/art/{slug}/{filename}.jpg", resp.content)
                 except Exception as exc:
                     logger.warning(
-                        "Impossibile scaricare immagine Drive %s per opera %s: %s",
+                        "Impossibile scaricare immagine %s per opera %s: %s",
                         artwork.drive_file_id,
                         artwork.id,
                         exc,
@@ -71,11 +91,12 @@ def build_zip(gallery: Gallery) -> io.BytesIO:
 
             if artwork.drive_thumb_id:
                 try:
-                    thumb_bytes = client.download_file(artwork.drive_thumb_id)
-                    zf.writestr(f"img/art/{slug}/thumb_{filename}.jpg", thumb_bytes.read())
+                    resp = requests.get(artwork.drive_thumb_id, timeout=30)
+                    resp.raise_for_status()
+                    zf.writestr(f"img/art/{slug}/thumb_{filename}.jpg", resp.content)
                 except Exception as exc:
                     logger.warning(
-                        "Impossibile scaricare thumbnail Drive %s per opera %s: %s",
+                        "Impossibile scaricare thumbnail %s per opera %s: %s",
                         artwork.drive_thumb_id,
                         artwork.id,
                         exc,
@@ -83,6 +104,14 @@ def build_zip(gallery: Gallery) -> io.BytesIO:
 
     buf.seek(0)
     return buf
+
+
+def _cat_display_name(slug: str, gallery: Gallery) -> str:
+    """Restituisce il nome visualizzato della categoria dallo slug, cercando tra le opere."""
+    for item in gallery.items:
+        if _slugify(item.artwork.category) == slug:
+            return item.artwork.category
+    return slug
 
 
 def _slugify(text: str) -> str:

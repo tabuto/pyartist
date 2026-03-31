@@ -1,0 +1,18 @@
+{
+  "gallery_name": "InEvidenza",
+  "categories": [
+    {
+      "name": "marine",
+      "slug": "marine",
+      "items": [
+        {
+          "title": "Porto di Gela",
+          "category": "marine",
+          "image": "https://res.cloudinary.com/ds8hmzyom/image/upload/v1774985081/pyartist/web/marine/porto-di-gela-2.jpg",
+          "thumb": "https://res.cloudinary.com/ds8hmzyom/image/upload/v1774985081/pyartist/thumbs/marine/thumb_porto-di-gela-2.jpg",
+          "details": "2024, Acquerello su carta"
+        }
+      ]
+    }
+  ]
+}

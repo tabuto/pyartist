@@ -1,6 +1,8 @@
 """
 drive.py — Google Drive client for PyArtist backoffice.
 Handles folder creation, file upload/download/delete via Service Account credentials.
+Supports both regular Drive (folders shared with the Service Account) and
+Shared Drives (supportsAllDrives=True required for all API calls).
 """
 
 import os
@@ -21,6 +23,199 @@ class DriveClient:
             sa_path = self._PROJECT_ROOT / sa_path
         self._sa_file = str(sa_path) if sa_env else ""
         self._root_folder_id = os.environ.get("GOOGLE_DRIVE_ROOT_FOLDER_ID", "")
+
+    def _get_service(self):
+        if self._service is not None:
+            return self._service
+        from google.oauth2.service_account import Credentials
+        from googleapiclient.discovery import build
+
+        if not self._sa_file:
+            raise RuntimeError(
+                "Configurazione mancante: GOOGLE_SERVICE_ACCOUNT_FILE non impostato."
+            )
+        if not self._root_folder_id:
+            raise RuntimeError(
+                "Configurazione mancante: GOOGLE_DRIVE_ROOT_FOLDER_ID non impostato."
+            )
+
+        creds = Credentials.from_service_account_file(
+            self._sa_file,
+            scopes=["https://www.googleapis.com/auth/drive"],
+        )
+        self._service = build("drive", "v3", credentials=creds, cache_discovery=False)
+        return self._service
+
+    def get_or_create_folder(self, category: str, subfolder: str) -> str:
+        """Ensures pyartist/{subfolder}/{category}/ exists under root, returns folder_id.
+
+        Compatibile sia con Drive personale condiviso col Service Account
+        sia con Shared Drive (supportsAllDrives=True).
+        """
+        service = self._get_service()
+
+        def _find_or_create(name: str, parent_id: str) -> str:
+            query = (
+                f"name='{name}' and '{parent_id}' in parents "
+                f"and mimeType='application/vnd.google-apps.folder' and trashed=false"
+            )
+            try:
+                results = (
+                    service.files()
+                    .list(
+                        q=query,
+                        fields="files(id, name)",
+                        supportsAllDrives=True,
+                        includeItemsFromAllDrives=True,
+                    )
+                    .execute()
+                )
+            except Exception as exc:
+                self._raise_drive_error("ricerca cartella", name, exc)
+
+            files = results.get("files", [])
+            if files:
+                return files[0]["id"]
+
+            metadata = {
+                "name": name,
+                "mimeType": "application/vnd.google-apps.folder",
+                "parents": [parent_id],
+            }
+            try:
+                folder = (
+                    service.files()
+                    .create(body=metadata, fields="id", supportsAllDrives=True)
+                    .execute()
+                )
+            except Exception as exc:
+                self._raise_drive_error("creazione cartella", name, exc)
+            return folder["id"]
+
+        sub_id = _find_or_create(subfolder, self._root_folder_id)
+        cat_id = _find_or_create(category, sub_id)
+        return cat_id
+
+    def upload_file(
+        self,
+        src,
+        folder_id: str,
+        filename: str,
+        mime_type: str = "image/jpeg",
+    ) -> str:
+        """Upload src (Path o BytesIO) in una cartella Drive, restituisce drive_file_id.
+
+        Usa supportsAllDrives=True per compatibilità con Shared Drive.
+        Dopo l'upload trasferisce la proprietà all'account umano configurato
+        tramite DRIVE_OWNER_EMAIL (se impostato), così la quota storage è
+        addebitata all'utente reale e non al Service Account.
+        """
+        from googleapiclient.http import MediaIoBaseUpload
+
+        service = self._get_service()
+
+        if isinstance(src, Path):
+            file_obj = open(src, "rb")
+            close_after = True
+        else:
+            file_obj = src
+            close_after = False
+
+        try:
+            media = MediaIoBaseUpload(file_obj, mimetype=mime_type, resumable=False)
+            file_metadata = {"name": filename, "parents": [folder_id]}
+            try:
+                result = (
+                    service.files()
+                    .create(
+                        body=file_metadata,
+                        media_body=media,
+                        fields="id",
+                        supportsAllDrives=True,
+                    )
+                    .execute()
+                )
+            except Exception as exc:
+                self._raise_drive_error("upload", filename, exc)
+        finally:
+            if close_after:
+                file_obj.close()
+
+        file_id = result["id"]
+
+        # Trasferimento permesso all'account umano (opzionale)
+        owner_email = os.environ.get("DRIVE_OWNER_EMAIL", "")
+        if owner_email:
+            try:
+                permission = {
+                    "type": "user",
+                    "role": "writer",
+                    "emailAddress": owner_email,
+                }
+                service.permissions().create(
+                    fileId=file_id,
+                    body=permission,
+                    supportsAllDrives=True,
+                ).execute()
+            except Exception:
+                pass  # Non bloccante: il file è già caricato
+
+        return file_id
+
+    def download_file(self, drive_file_id: str) -> BytesIO:
+        """Download file from Drive, returns BytesIO.
+
+        Usa supportsAllDrives=True per compatibilità con Shared Drive.
+        """
+        from googleapiclient.http import MediaIoBaseDownload
+
+        service = self._get_service()
+        buf = BytesIO()
+        try:
+            request = service.files().get_media(
+                fileId=drive_file_id, supportsAllDrives=True
+            )
+            downloader = MediaIoBaseDownload(buf, request)
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+        except Exception as exc:
+            self._raise_drive_error("download", drive_file_id, exc)
+
+        buf.seek(0)
+        return buf
+
+    def delete_file(self, drive_file_id: str) -> None:
+        """Delete a file from Drive.
+
+        Usa supportsAllDrives=True per compatibilità con Shared Drive.
+        """
+        service = self._get_service()
+        try:
+            service.files().delete(
+                fileId=drive_file_id, supportsAllDrives=True
+            ).execute()
+        except Exception as exc:
+            self._raise_drive_error("eliminazione", drive_file_id, exc)
+
+    def _raise_drive_error(self, operation: str, resource: str, exc: Exception) -> None:
+        status = getattr(exc, "status_code", None) or getattr(
+            getattr(exc, "resp", None), "status", None
+        )
+        try:
+            status = int(status)
+        except (TypeError, ValueError):
+            status = 0
+
+        if status in (401, 403):
+            raise PermissionError(
+                f"Accesso negato a Google Drive durante '{operation}' su '{resource}'. "
+                f"Verifica le credenziali del Service Account (errore {status})."
+            ) from exc
+        raise RuntimeError(
+            f"Errore Google Drive durante '{operation}' su '{resource}': {exc}"
+        ) from exc
+
 
     def _get_service(self):
         if self._service is not None:

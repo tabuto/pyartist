@@ -1,7 +1,7 @@
 ---
 id: TSK-8
 title: Implementare autenticazione Google OAuth2
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-27 13:24'
 labels:
