@@ -73,7 +73,7 @@ def upload():
         artwork.image_path = f"/img/art/{cat_slug}/{filename_base}.jpg"
         artwork.thumb_path = f"/img/art/{cat_slug}/thumb_{filename_base}.jpg"
 
-        # Process image via sync_engine
+        # Process image via sync_engine + upload su Cloudinary
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir) / secure_filename(file.filename)
             file.save(str(tmp_path))
@@ -85,25 +85,29 @@ def upload():
             optimize_image(tmp_path, web_path)
             generate_thumbnail(tmp_path, thumb_path)
 
-            # Upload to Drive (optional — skip if not configured)
+            # Upload su Cloudinary (opzionale — skip se non configurato)
             try:
-                from drive import DriveClient
+                from cloudinary_storage import upload_to_archive
 
-                client = DriveClient()
-                orig_folder = client.get_or_create_folder(cat_slug, "originals")
-                web_folder = client.get_or_create_folder(cat_slug, "web")
-                thumb_folder = client.get_or_create_folder(cat_slug, "thumbs")
-
-                client.upload_file(tmp_path, orig_folder, f"{filename_base}_orig.jpg")
-                artwork.drive_file_id = client.upload_file(
-                    web_path, web_folder, f"{filename_base}.jpg"
+                web_result = upload_to_archive(
+                    web_path,
+                    folder=f"pyartist/web/{cat_slug}",
+                    public_id=filename_base,
                 )
-                artwork.drive_thumb_id = client.upload_file(
-                    thumb_path, thumb_folder, f"thumb_{filename_base}.jpg"
+                thumb_result = upload_to_archive(
+                    thumb_path,
+                    folder=f"pyartist/thumbs/{cat_slug}",
+                    public_id=f"thumb_{filename_base}",
                 )
+                # secure_url come riferimento archivio nel DB
+                artwork.drive_file_id = web_result["secure_url"]
+                artwork.drive_thumb_id = thumb_result["secure_url"]
+                # Aggiorna i percorsi pubblici con le URL Cloudinary CDN
+                artwork.image_path = web_result["secure_url"]
+                artwork.thumb_path = thumb_result["secure_url"]
             except Exception as exc:
-                logger.error("Drive upload fallito (upload): %s", exc, exc_info=True)
-                flash(f"Drive non disponibile, opera salvata senza sync: {exc}", "warning")
+                logger.error("Cloudinary upload fallito: %s", exc, exc_info=True)
+                flash(f"Cloudinary non disponibile, opera salvata senza sync: {exc}", "warning")
 
         db.session.commit()
         flash(f"Opera «{title}» caricata con successo.", "success")
@@ -145,23 +149,25 @@ def edit(id):
                 generate_thumbnail(tmp_path, thumb_path)
 
                 try:
-                    from drive import DriveClient
+                    from cloudinary_storage import upload_to_archive
 
-                    client = DriveClient()
-                    orig_folder = client.get_or_create_folder(cat_slug, "originals")
-                    web_folder = client.get_or_create_folder(cat_slug, "web")
-                    thumb_folder = client.get_or_create_folder(cat_slug, "thumbs")
-
-                    client.upload_file(tmp_path, orig_folder, f"{filename_base}_orig.jpg")
-                    artwork.drive_file_id = client.upload_file(
-                        web_path, web_folder, f"{filename_base}.jpg"
+                    web_result = upload_to_archive(
+                        web_path,
+                        folder=f"pyartist/web/{cat_slug}",
+                        public_id=filename_base,
                     )
-                    artwork.drive_thumb_id = client.upload_file(
-                        thumb_path, thumb_folder, f"thumb_{filename_base}.jpg"
+                    thumb_result = upload_to_archive(
+                        thumb_path,
+                        folder=f"pyartist/thumbs/{cat_slug}",
+                        public_id=f"thumb_{filename_base}",
                     )
+                    artwork.drive_file_id = web_result["secure_url"]
+                    artwork.drive_thumb_id = thumb_result["secure_url"]
+                    artwork.image_path = web_result["secure_url"]
+                    artwork.thumb_path = thumb_result["secure_url"]
                 except Exception as exc:
-                    logger.error("Drive upload fallito (edit): %s", exc, exc_info=True)
-                    flash(f"Drive non disponibile: {exc}", "warning")
+                    logger.error("Cloudinary upload fallito (edit): %s", exc, exc_info=True)
+                    flash(f"Cloudinary non disponibile: {exc}", "warning")
 
         db.session.commit()
         flash(f"Opera «{artwork.title}» aggiornata.", "success")
@@ -175,19 +181,26 @@ def edit(id):
 def delete(id):
     artwork = Artwork.query.get_or_404(id)
 
-    # Delete Drive files if present
+    # Elimina da Cloudinary se presenti URL in archivio
     if artwork.drive_file_id or artwork.drive_thumb_id:
         try:
-            from drive import DriveClient
+            from cloudinary_storage import delete_from_archive
+            import re
 
-            client = DriveClient()
+            def _public_id_from_url(url: str) -> str:
+                # Estrae il public_id dall'URL Cloudinary
+                # es: https://res.cloudinary.com/cloud/image/upload/v123/pyartist/web/cat/name.jpg
+                # → pyartist/web/cat/name
+                match = re.search(r"/upload/(?:v\d+/)?(.+?)(?:\.\w+)?$", url or "")
+                return match.group(1) if match else url
+
             if artwork.drive_file_id:
-                client.delete_file(artwork.drive_file_id)
+                delete_from_archive(_public_id_from_url(artwork.drive_file_id))
             if artwork.drive_thumb_id:
-                client.delete_file(artwork.drive_thumb_id)
+                delete_from_archive(_public_id_from_url(artwork.drive_thumb_id))
         except Exception as exc:
-            logger.error("Drive delete fallito: %s", exc, exc_info=True)
-            flash(f"Impossibile eliminare file su Drive: {exc}", "warning")
+            logger.error("Cloudinary delete fallito: %s", exc, exc_info=True)
+            flash(f"Impossibile eliminare file su Cloudinary: {exc}", "warning")
 
     db.session.delete(artwork)
     db.session.commit()
