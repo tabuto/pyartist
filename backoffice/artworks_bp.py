@@ -2,11 +2,13 @@
 artworks_bp.py — Blueprint for artwork CRUD + Drive upload.
 """
 
+import logging
 import tempfile
 from pathlib import Path
 
 from flask import (
     Blueprint,
+    current_app,
     flash,
     jsonify,
     redirect,
@@ -15,6 +17,8 @@ from flask import (
     url_for,
 )
 from werkzeug.utils import secure_filename
+
+logger = logging.getLogger(__name__)
 
 from models import Artwork, Category, db
 from utils import login_required, slugify
@@ -98,6 +102,7 @@ def upload():
                     thumb_path, thumb_folder, f"thumb_{filename_base}.jpg"
                 )
             except Exception as exc:
+                logger.error("Drive upload fallito (upload): %s", exc, exc_info=True)
                 flash(f"Drive non disponibile, opera salvata senza sync: {exc}", "warning")
 
         db.session.commit()
@@ -155,6 +160,7 @@ def edit(id):
                         thumb_path, thumb_folder, f"thumb_{filename_base}.jpg"
                     )
                 except Exception as exc:
+                    logger.error("Drive upload fallito (edit): %s", exc, exc_info=True)
                     flash(f"Drive non disponibile: {exc}", "warning")
 
         db.session.commit()
@@ -180,6 +186,7 @@ def delete(id):
             if artwork.drive_thumb_id:
                 client.delete_file(artwork.drive_thumb_id)
         except Exception as exc:
+            logger.error("Drive delete fallito: %s", exc, exc_info=True)
             flash(f"Impossibile eliminare file su Drive: {exc}", "warning")
 
     db.session.delete(artwork)

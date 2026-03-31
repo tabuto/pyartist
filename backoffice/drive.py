@@ -9,9 +9,17 @@ from pathlib import Path
 
 
 class DriveClient:
+    # Root del progetto (un livello sopra backoffice/)
+    _PROJECT_ROOT = Path(__file__).parent.parent
+
     def __init__(self):
         self._service = None
-        self._sa_file = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE", "")
+        sa_env = os.environ.get("GOOGLE_SERVICE_ACCOUNT_FILE", "")
+        # Se il path è relativo, lo risolve dalla root del progetto
+        sa_path = Path(sa_env)
+        if sa_env and not sa_path.is_absolute():
+            sa_path = self._PROJECT_ROOT / sa_path
+        self._sa_file = str(sa_path) if sa_env else ""
         self._root_folder_id = os.environ.get("GOOGLE_DRIVE_ROOT_FOLDER_ID", "")
 
     def _get_service(self):
