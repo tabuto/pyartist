@@ -31,6 +31,8 @@ def _turso_engine_config():
     )
     engine_opts = {
         "connect_args": {"auth_token": token},
+        "pool_recycle": 280,   # ricicla connessioni ogni ~5min (evita connessioni stantie)
+        "pool_pre_ping": True, # verifica connessione prima di usarla dal pool
     }
     return db_uri, engine_opts
 
@@ -127,10 +129,25 @@ def create_app():
     @app.route("/home")
     @login_required
     def home():
-        artwork_count = Artwork.query.count()
-        published_count = Artwork.query.filter_by(is_published=True).count()
-        gallery_count = Gallery.query.count()
-        category_count = Category.query.count()
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+
+        def _query_stats():
+            return (
+                Artwork.query.count(),
+                Artwork.query.filter_by(is_published=True).count(),
+                Gallery.query.count(),
+                Category.query.count(),
+            )
+
+        artwork_count = published_count = gallery_count = category_count = 0
+        try:
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                artwork_count, published_count, gallery_count, category_count = (
+                    ex.submit(_query_stats).result(timeout=8)
+                )
+        except (FuturesTimeout, Exception):
+            pass  # mostra la home con contatori a 0 se Turso non risponde
+
         return render_template(
             "home.html",
             artwork_count=artwork_count,
