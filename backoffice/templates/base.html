@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="it" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}PyArtist Backoffice{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { accent: '#7A9EB1' },
+          fontFamily: {
+            display: ['"Playfair Display"', 'serif'],
+            body: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #FCFCFC; color: #1A1A1A; }
+    h1, h2, h3, .font-display { font-family: 'Playfair Display', serif; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body class="h-full flex flex-col min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-14">
+        <a href="/home" class="font-display text-lg font-semibold text-accent">PyArtist</a>
+        <div class="flex items-center gap-6 text-sm font-medium text-[#1A1A1A]">
+          <a href="/home" class="hover:text-accent transition-colors">Dashboard</a>
+          <a href="/artworks/" class="hover:text-accent transition-colors">Opere</a>
+          <a href="/gallery/categories" class="hover:text-accent transition-colors">Categorie</a>
+          <a href="/gallery/" class="hover:text-accent transition-colors">Gallerie</a>
+          <a href="/sync/" class="hover:text-accent transition-colors">Sync</a>
+          <a href="/logout" class="text-red-500 hover:text-red-700 transition-colors">Esci</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-2">
+        {% for category, message in messages %}
+          <div class="px-4 py-3 rounded-lg text-sm
+            {% if category == 'error' %}bg-red-50 text-red-800 border border-red-200
+            {% elif category == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
+            {% else %}bg-green-50 text-green-800 border border-green-200{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Main content -->
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    {% block content %}{% endblock %}
+  </main>
+
+</body>
+</html>

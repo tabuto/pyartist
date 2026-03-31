@@ -1,7 +1,8 @@
 import os
-from flask import Flask, render_template_string
-from models import db
-from oauth import configure_oauth
+from flask import Flask, render_template, render_template_string, session, redirect, url_for, abort
+from models import db, Artwork, Gallery, Category
+from oauth import configure_oauth, oauth
+from utils import login_required
 from dotenv import load_dotenv, find_dotenv
 
 # override=True: sovrascrive sempre le env vars con i valori del .env
@@ -52,20 +53,67 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+    # ── Register blueprints ────────────────────────────────────────────────────
+    from artworks_bp import artworks_bp
+    from gallery_bp import gallery_bp
+    from sync_bp import sync_bp
+
+    app.register_blueprint(artworks_bp)
+    app.register_blueprint(gallery_bp)
+    app.register_blueprint(sync_bp)
+
+    # ── Auth routes ───────────────────────────────────────────────────────────
+    @app.route("/login")
+    def login():
+        redirect_uri = url_for("auth_callback", _external=True)
+        return oauth.google.authorize_redirect(redirect_uri)
+
+    @app.route("/auth/callback")
+    def auth_callback():
+        token = oauth.google.authorize_access_token()
+        user_info = token.get("userinfo")
+        allowed_email = os.environ.get("ALLOWED_EMAIL", "")
+        if not user_info or user_info.get("email") != allowed_email:
+            abort(403)
+        session["user"] = {
+            "email": user_info["email"],
+            "name": user_info.get("name", ""),
+        }
+        return redirect(url_for("home"))
+
+    @app.route("/logout")
+    def logout():
+        session.clear()
+        return redirect(url_for("index"))
+
     # ── Route placeholder ─────────────────────────────────────────────────────
     @app.route("/")
     def index():
         return render_template_string("""
         <!doctype html>
-        <html lang="en">
+        <html lang="it">
         <head><meta charset="utf-8"><title>PyArtist Backoffice</title></head>
         <body style="font-family:sans-serif;padding:2rem;background:#FCFCFC;color:#1A1A1A">
           <h1 style="color:#7A9EB1">PyArtist Backoffice</h1>
-          <p>Placeholder — autenticazione e dashboard in arrivo (TSK-8, TSK-9).</p>
-          <a href="/login">Login with Google</a>
+          <a href="/login">Login con Google</a>
         </body>
         </html>
         """)
+
+    @app.route("/home")
+    @login_required
+    def home():
+        artwork_count = Artwork.query.count()
+        published_count = Artwork.query.filter_by(is_published=True).count()
+        gallery_count = Gallery.query.count()
+        category_count = Category.query.count()
+        return render_template(
+            "home.html",
+            artwork_count=artwork_count,
+            published_count=published_count,
+            gallery_count=gallery_count,
+            category_count=category_count,
+        )
 
     return app
 

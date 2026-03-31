@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ gallery.name }} — PyArtist{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="mb-4">
+  <a href="{{ url_for('gallery.gallery_list') }}" class="text-sm text-gray-400 hover:text-accent">← Gallerie</a>
+</div>
+
+<h1 class="font-display text-2xl font-semibold mb-1">{{ gallery.name }}</h1>
+{% if gallery.description %}<p class="text-gray-500 text-sm mb-6">{{ gallery.description }}</p>{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
+  <!-- Gallery items -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 font-medium text-sm text-gray-600 flex items-center justify-between">
+      <span>Opere in questa galleria</span>
+      <span class="text-xs text-gray-400">Trascina per riordinare</span>
+    </div>
+    <ul id="gallery-items" class="divide-y divide-gray-100 min-h-[4rem]">
+      {% for item in gallery.items %}
+      <li data-id="{{ item.id }}" class="flex items-center justify-between px-5 py-3 text-sm">
+        <div class="flex items-center gap-3">
+          <span class="cursor-grab text-gray-400 drag-handle">⠿</span>
+          <div>
+            <span class="font-medium">{{ item.artwork.title }}</span>
+            <span class="ml-2 text-gray-400 text-xs">{{ item.artwork.category }}</span>
+          </div>
+        </div>
+        <form action="{{ url_for('gallery.remove_item', id=gallery.id) }}" method="post">
+          <input type="hidden" name="item_id" value="{{ item.id }}">
+          <button type="submit" class="text-red-400 hover:text-red-600 text-xs">Rimuovi</button>
+        </form>
+      </li>
+      {% else %}
+      <li class="px-5 py-6 text-center text-gray-400 text-sm">Nessuna opera aggiunta.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Available artworks -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 font-medium text-sm text-gray-600">Opere disponibili</div>
+    <ul class="divide-y divide-gray-100 max-h-96 overflow-y-auto">
+      {% for artwork in available %}
+      <li class="flex items-center justify-between px-5 py-3 text-sm">
+        <div>
+          <span class="font-medium">{{ artwork.title }}</span>
+          <span class="ml-2 text-gray-400 text-xs">{{ artwork.category }}</span>
+        </div>
+        <form action="{{ url_for('gallery.add_item', id=gallery.id) }}" method="post">
+          <input type="hidden" name="artwork_id" value="{{ artwork.id }}">
+          <button type="submit" class="text-accent hover:underline text-xs">Aggiungi</button>
+        </form>
+      </li>
+      {% else %}
+      <li class="px-5 py-6 text-center text-gray-400 text-sm">Tutte le opere sono già in galleria.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<script>
+  const el = document.getElementById('gallery-items');
+  if (el) {
+    Sortable.create(el, {
+      handle: '.drag-handle',
+      animation: 150,
+      onEnd: function() {
+        const ids = [...el.querySelectorAll('li[data-id]')].map(r => parseInt(r.dataset.id));
+        fetch('{{ url_for("gallery.reorder_items", id=gallery.id) }}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ids})
+        });
+      }
+    });
+  }
+</script>
+{% endblock %}

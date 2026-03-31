@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Carica Opera — PyArtist{% endblock %}
+{% block content %}
+<div class="max-w-xl">
+  <h1 class="font-display text-2xl font-semibold mb-6">Carica Opera</h1>
+
+  <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+    <div>
+      <label class="block text-sm font-medium mb-1" for="title">Titolo <span class="text-red-500">*</span></label>
+      <input type="text" id="title" name="title" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="category">Categoria</label>
+      <select id="category" name="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+        <option value="">— nessuna —</option>
+        {% for cat in categories %}
+        <option value="{{ cat.slug }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="year">Anno</label>
+      <input type="text" id="year" name="year" maxlength="4" placeholder="es. 2024" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="technique">Tecnica</label>
+      <input type="text" id="technique" name="technique" value="Acquerello su carta" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="image">Immagine <span class="text-red-500">*</span></label>
+      <input type="file" id="image" name="image" accept="image/*" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-accent file:text-white hover:file:bg-[#6a8ea0]">
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="bg-accent text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Carica Opera</button>
+      <a href="{{ url_for('artworks.list_artworks') }}" class="border border-gray-300 text-gray-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Annulla</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

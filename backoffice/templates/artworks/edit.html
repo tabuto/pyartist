@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Modifica Opera — PyArtist{% endblock %}
+{% block content %}
+<div class="max-w-xl">
+  <h1 class="font-display text-2xl font-semibold mb-6">Modifica Opera</h1>
+
+  {% if artwork.thumb_path %}
+  <div class="mb-5">
+    <img src="{{ artwork.thumb_path }}" alt="{{ artwork.title }}" class="w-32 h-32 object-cover rounded-lg border border-gray-200">
+  </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+    <div>
+      <label class="block text-sm font-medium mb-1" for="title">Titolo <span class="text-red-500">*</span></label>
+      <input type="text" id="title" name="title" value="{{ artwork.title }}" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="category">Categoria</label>
+      <select id="category" name="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+        <option value="">— nessuna —</option>
+        {% for cat in categories %}
+        <option value="{{ cat.slug }}" {% if artwork.category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="year">Anno</label>
+      <input type="text" id="year" name="year" value="{{ artwork.year or '' }}" maxlength="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="technique">Tecnica</label>
+      <input type="text" id="technique" name="technique" value="{{ artwork.technique }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="is_published" name="is_published" {% if artwork.is_published %}checked{% endif %} class="w-4 h-4 accent-[#7A9EB1]">
+      <label for="is_published" class="text-sm font-medium">Pubblicata</label>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="image">Nuova immagine (opzionale)</label>
+      <input type="file" id="image" name="image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-accent file:text-white hover:file:bg-[#6a8ea0]">
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="bg-accent text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Salva modifiche</button>
+      <a href="{{ url_for('artworks.list_artworks') }}" class="border border-gray-300 text-gray-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Annulla</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

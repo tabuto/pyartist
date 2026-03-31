@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Categorie — PyArtist{% endblock %}
+{% block content %}
+<h1 class="font-display text-2xl font-semibold mb-6">Categorie</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+  <!-- List -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 font-medium text-sm text-gray-600">Categorie esistenti</div>
+    <ul class="divide-y divide-gray-100">
+      {% for cat in categories %}
+      <li class="flex items-center justify-between px-5 py-3 text-sm">
+        <div>
+          <span class="font-medium">{{ cat.name }}</span>
+          <span class="ml-2 text-gray-400 text-xs">{{ cat.slug }}</span>
+        </div>
+        <div class="flex gap-3">
+          <a href="{{ url_for('gallery.edit_category', id=cat.id) }}" class="text-accent hover:underline text-xs">Modifica</a>
+          <form action="{{ url_for('gallery.delete_category', id=cat.id) }}" method="post" onsubmit="return confirm('Eliminare la categoria?')">
+            <button type="submit" class="text-red-500 hover:underline text-xs">Elimina</button>
+          </form>
+        </div>
+      </li>
+      {% else %}
+      <li class="px-5 py-6 text-center text-gray-400 text-sm">Nessuna categoria.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Add form -->
+  <div x-data="{ name: '', slug: '' }">
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <h2 class="font-display text-lg font-semibold">Nuova Categoria</h2>
+      <form method="post" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Nome <span class="text-red-500">*</span></label>
+          <input type="text" name="name" x-model="name" @input="slug = name.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-')" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Slug</label>
+          <input type="text" name="slug" x-model="slug" placeholder="auto-generato" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+          <p class="text-xs text-gray-400 mt-1">Lascia vuoto per generarlo dal nome.</p>
+        </div>
+        <button type="submit" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Aggiungi categoria</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
