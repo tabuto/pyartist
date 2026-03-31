@@ -50,6 +50,19 @@ def create_app():
     db.init_app(app)
     configure_oauth(app)
 
+    # ── Configurazione sessione per OAuth2 ────────────────────────────────────
+    # SameSite=Lax è essenziale: senza di esso il browser non invia il cookie
+    # di sessione al ritorno dal redirect Google, causando MismatchingStateError.
+    app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
+    app.config.setdefault("SESSION_COOKIE_PATH", "/")
+    app.config.setdefault("SESSION_PERMANENT", True)
+    app.config.setdefault("PERMANENT_SESSION_LIFETIME", 604800)  # 7 giorni
+    # In produzione (HTTPS) il cookie deve essere Secure; disabilitabile in locale
+    # impostando SESSION_COOKIE_SECURE=false nel .env
+    secure = os.environ.get("SESSION_COOKIE_SECURE", "true").lower() != "false"
+    app.config.setdefault("SESSION_COOKIE_SECURE", secure)
+    # ─────────────────────────────────────────────────────────────────────────
+
     with app.app_context():
         db.create_all()
 
@@ -70,11 +83,22 @@ def create_app():
 
     @app.route("/auth/callback")
     def auth_callback():
-        token = oauth.google.authorize_access_token()
+        from authlib.integrations.base_client.errors import MismatchingStateError
+
+        try:
+            token = oauth.google.authorize_access_token()
+        except MismatchingStateError:
+            # La sessione è scaduta o il cookie non è stato inviato durante il redirect OAuth.
+            # Reindirizza al login invece di mostrare un 500.
+            return redirect(url_for("login"))
+        except Exception:
+            return redirect(url_for("login"))
+
         user_info = token.get("userinfo")
         allowed_email = os.environ.get("ALLOWED_EMAIL", "")
         if not user_info or user_info.get("email") != allowed_email:
             abort(403)
+        session.permanent = True
         session["user"] = {
             "email": user_info["email"],
             "name": user_info.get("name", ""),
