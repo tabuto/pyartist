@@ -2,6 +2,8 @@
 gallery_builder.py — Build gallery JSON and downloadable ZIP archives.
 """
 
+from __future__ import annotations
+
 import io
 import json
 import logging
