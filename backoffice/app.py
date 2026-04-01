@@ -1,6 +1,7 @@
 import logging
 import os
 
+import requests as http_client
 from flask import Flask, render_template, render_template_string, session, redirect, url_for, abort
 from models import db, Artwork, Gallery, Category
 from oauth import configure_oauth, oauth
@@ -12,6 +13,25 @@ load_dotenv(find_dotenv(), override=True)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+
+def _turso_http(sql: str, timeout: int = 6) -> list[list]:
+    """Esegue una query su Turso via HTTP API (bypass libsql/WebSocket).
+    Ritorna la lista di righe come lista di liste di valori.
+    Solleva RuntimeError in caso di errore o timeout."""
+    url = os.environ.get("TURSO_URL", "").replace("libsql://", "https://")
+    token = os.environ.get("TURSO_AUTH_TOKEN", "")
+    if not url or not token:
+        raise RuntimeError("TURSO_URL / TURSO_AUTH_TOKEN non configurati")
+    resp = http_client.post(
+        f"{url}/v2/pipeline",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        json={"requests": [{"type": "execute", "stmt": {"sql": sql}}, {"type": "close"}]},
+        timeout=timeout,
+    )
+    resp.raise_for_status()
+    rows = resp.json()["results"][0]["response"]["result"]["rows"]
+    return [[cell.get("value") for cell in row] for row in rows]
 
 
 def _turso_engine_config():
@@ -44,24 +64,12 @@ def _turso_engine_config():
 
 def _check_connectivity(app):
     """Verifica la connettività verso Turso e Cloudinary al boot e logga l'esito."""
-    # ── Turso ──────────────────────────────────────────────────────────────────
-    def _turso_ping():
-        with app.app_context():
-            return db.session.execute(db.text("SELECT 1")).scalar()
-
+    # ── Turso via HTTP API ─────────────────────────────────────────────────────
     try:
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FT
-        executor = ThreadPoolExecutor(max_workers=1)
-        future = executor.submit(_turso_ping)
-        try:
-            count = future.result(timeout=10)
-            logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", count)
-        except FT:
-            logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
-        except Exception as exc:
-            logger.error("❌ Turso: errore di connessione — %s", exc)
-        finally:
-            executor.shutdown(wait=False)
+        rows = _turso_http("SELECT 1", timeout=10)
+        logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", rows[0][0] if rows else "?")
+    except http_client.Timeout:
+        logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
     except Exception as exc:
         logger.error("❌ Turso: errore di connessione — %s", exc)
 
@@ -175,38 +183,28 @@ def create_app():
     @app.route("/home")
     @login_required
     def home():
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FT
-
-        def _query_stats():
-            with app.app_context():
-                logger.info("home: avvio query Turso...")
-                aw = Artwork.query.count()
-                logger.info("home: artwork=%s", aw)
-                pub = Artwork.query.filter_by(is_published=True).count()
-                logger.info("home: published=%s", pub)
-                gal = Gallery.query.count()
-                logger.info("home: gallery=%s", gal)
-                cat = Category.query.count()
-                logger.info("home: category=%s", cat)
-                return aw, pub, gal, cat
-
         artwork_count = published_count = gallery_count = category_count = 0
-        # NON usare il context manager: with ThreadPoolExecutor chiama
-        # shutdown(wait=True) su __exit__, bloccando comunque il thread.
-        executor = ThreadPoolExecutor(max_workers=1)
-        future = executor.submit(_query_stats)
         try:
-            artwork_count, published_count, gallery_count, category_count = (
-                future.result(timeout=8)
-            )
+            logger.info("home: query Turso via HTTP API...")
+            rows = _turso_http("""
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN is_published = 1 THEN 1 ELSE 0 END) AS published
+                FROM artwork
+            """)
+            if rows:
+                artwork_count = int(rows[0][0] or 0)
+                published_count = int(rows[0][1] or 0)
+
+            gallery_count = int((_turso_http("SELECT COUNT(*) FROM gallery") or [[0]])[0][0] or 0)
+            category_count = int((_turso_http("SELECT COUNT(*) FROM category") or [[0]])[0][0] or 0)
+
             logger.info("home: stats OK — opere=%s pubbl=%s gallerie=%s categorie=%s",
                         artwork_count, published_count, gallery_count, category_count)
-        except FT:
-            logger.error("home: timeout Turso dopo 8s — mostro contatori a zero")
+        except http_client.Timeout:
+            logger.error("home: timeout API Turso")
         except Exception as exc:
-            logger.error("home: eccezione nelle query Turso — %s", exc, exc_info=True)
-        finally:
-            executor.shutdown(wait=False)  # libera senza aspettare il thread bloccato
+            logger.error("home: errore query Turso — %s", exc, exc_info=True)
 
         return render_template(
             "home.html",
