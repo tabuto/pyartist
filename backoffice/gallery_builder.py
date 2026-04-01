@@ -54,7 +54,7 @@ def generate_gallery_json(gallery) -> dict:
     return data
 
 
-def build_zip(gallery: Gallery) -> io.BytesIO:
+def build_zip(gallery) -> io.BytesIO:
     """Build a ZIP archive with gallery.json + artwork images from Cloudinary.
 
     Struttura ZIP:
@@ -106,7 +106,7 @@ def build_zip(gallery: Gallery) -> io.BytesIO:
     return buf
 
 
-def _cat_display_name(slug: str, gallery: Gallery) -> str:
+def _cat_display_name(slug: str, gallery) -> str:
     """Restituisce il nome visualizzato della categoria dallo slug, cercando tra le opere."""
     for item in gallery.items:
         if _slugify(item.artwork.category) == slug:
