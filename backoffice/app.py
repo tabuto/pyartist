@@ -44,31 +44,34 @@ def _turso_engine_config():
 
 def _check_connectivity(app):
     """Verifica la connettività verso Turso e Cloudinary al boot e logga l'esito."""
-    with app.app_context():
-        # ── Turso ──────────────────────────────────────────────────────────────
-        try:
-            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FT
-            with ThreadPoolExecutor(max_workers=1) as ex:
-                count = ex.submit(lambda: db.session.execute(db.text("SELECT 1")).scalar()).result(timeout=10)
-            logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", count)
-        except FT:
-            logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
-        except Exception as exc:
-            logger.error("❌ Turso: errore di connessione — %s", exc)
+    # ── Turso ──────────────────────────────────────────────────────────────────
+    def _turso_ping():
+        with app.app_context():
+            return db.session.execute(db.text("SELECT 1")).scalar()
 
-        # ── Cloudinary ─────────────────────────────────────────────────────────
-        cloudinary_url = os.environ.get("CLOUDINARY_URL", "")
-        if not cloudinary_url:
-            logger.warning("⚠️  Cloudinary: CLOUDINARY_URL non configurato")
-        else:
-            try:
-                import cloudinary
-                import cloudinary.api
-                cloudinary.config(cloudinary_url=cloudinary_url)
-                result = cloudinary.api.ping()
-                logger.info("✅ Cloudinary: connessione OK (status=%s)", result.get("status"))
-            except Exception as exc:
-                logger.error("❌ Cloudinary: errore di connessione — %s", exc)
+    try:
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FT
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            count = ex.submit(_turso_ping).result(timeout=10)
+        logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", count)
+    except FT:
+        logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
+    except Exception as exc:
+        logger.error("❌ Turso: errore di connessione — %s", exc)
+
+    # ── Cloudinary ─────────────────────────────────────────────────────────────
+    cloudinary_url = os.environ.get("CLOUDINARY_URL", "")
+    if not cloudinary_url:
+        logger.warning("⚠️  Cloudinary: CLOUDINARY_URL non configurato")
+    else:
+        try:
+            import cloudinary
+            import cloudinary.api
+            cloudinary.config(cloudinary_url=cloudinary_url)
+            result = cloudinary.api.ping()
+            logger.info("✅ Cloudinary: connessione OK (status=%s)", result.get("status"))
+        except Exception as exc:
+            logger.error("❌ Cloudinary: errore di connessione — %s", exc)
 
 
 
