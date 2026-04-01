@@ -8,7 +8,6 @@ from pathlib import Path
 
 from flask import (
     Blueprint,
-    current_app,
     flash,
     jsonify,
     redirect,
@@ -18,10 +17,10 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
-logger = logging.getLogger(__name__)
-
-from models import Artwork, Category, db
+import turso_db as tdb
 from utils import login_required, slugify
+
+logger = logging.getLogger(__name__)
 
 artworks_bp = Blueprint("artworks", __name__, url_prefix="/artworks")
 
@@ -35,14 +34,14 @@ def _allowed(filename: str) -> bool:
 @artworks_bp.route("/")
 @login_required
 def list_artworks():
-    artworks = Artwork.query.order_by(Artwork.position).all()
+    artworks = tdb.artwork_list()
     return render_template("artworks/list.html", artworks=artworks)
 
 
 @artworks_bp.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
-    categories = Category.query.order_by(Category.position).all()
+    categories = tdb.category_list()
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
@@ -55,23 +54,27 @@ def upload():
             flash("Titolo e immagine valida sono obbligatori.", "error")
             return render_template("artworks/upload.html", categories=categories)
 
-        # Determine next position
-        max_pos = db.session.query(db.func.max(Artwork.position)).scalar() or 0
-        artwork = Artwork(
+        cat_slug = slugify(category_slug) if category_slug else "uncategorized"
+        title_slug = slugify(title)
+
+        # Crea il record senza paths per ottenere l'ID
+        max_pos = tdb.artwork_max_position()
+        artwork_id = tdb.artwork_create(
             title=title,
             category=category_slug,
             year=year or None,
             technique=technique,
+            image_path=None,
+            thumb_path=None,
+            drive_file_id=None,
+            drive_thumb_id=None,
+            is_published=False,
             position=max_pos + 1,
         )
-        db.session.add(artwork)
-        db.session.flush()  # get artwork.id
 
-        cat_slug = slugify(category_slug) if category_slug else "uncategorized"
-        title_slug = slugify(title)
-        filename_base = f"{title_slug}-{artwork.id}"
-        artwork.image_path = f"/img/art/{cat_slug}/{filename_base}.jpg"
-        artwork.thumb_path = f"/img/art/{cat_slug}/thumb_{filename_base}.jpg"
+        filename_base = f"{title_slug}-{artwork_id}"
+        local_image = f"/img/art/{cat_slug}/{filename_base}.jpg"
+        local_thumb = f"/img/art/{cat_slug}/thumb_{filename_base}.jpg"
 
         # Process image via sync_engine + upload su Cloudinary
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -85,7 +88,6 @@ def upload():
             optimize_image(tmp_path, web_path)
             generate_thumbnail(tmp_path, thumb_path)
 
-            # Upload su Cloudinary (opzionale — skip se non configurato)
             try:
                 from cloudinary_storage import upload_to_archive
 
@@ -99,17 +101,18 @@ def upload():
                     folder=f"pyartist/thumbs/{cat_slug}",
                     public_id=f"thumb_{filename_base}",
                 )
-                # secure_url come riferimento archivio nel DB
-                artwork.drive_file_id = web_result["secure_url"]
-                artwork.drive_thumb_id = thumb_result["secure_url"]
-                # Aggiorna i percorsi pubblici con le URL Cloudinary CDN
-                artwork.image_path = web_result["secure_url"]
-                artwork.thumb_path = thumb_result["secure_url"]
+                tdb.artwork_update(
+                    artwork_id,
+                    image_path=web_result["secure_url"],
+                    thumb_path=thumb_result["secure_url"],
+                    drive_file_id=web_result["secure_url"],
+                    drive_thumb_id=thumb_result["secure_url"],
+                )
             except Exception as exc:
                 logger.error("Cloudinary upload fallito: %s", exc, exc_info=True)
+                tdb.artwork_update(artwork_id, image_path=local_image, thumb_path=local_thumb)
                 flash(f"Cloudinary non disponibile, opera salvata senza sync: {exc}", "warning")
 
-        db.session.commit()
         flash(f"Opera «{title}» caricata con successo.", "success")
         return redirect(url_for("artworks.list_artworks"))
 
@@ -119,23 +122,31 @@ def upload():
 @artworks_bp.route("/<int:id>/edit", methods=["GET", "POST"])
 @login_required
 def edit(id):
-    artwork = Artwork.query.get_or_404(id)
-    categories = Category.query.order_by(Category.position).all()
+    artwork = tdb.artwork_get(id)
+    categories = tdb.category_list()
 
     if request.method == "POST":
-        artwork.title = request.form.get("title", artwork.title).strip()
-        artwork.category = request.form.get("category", artwork.category).strip()
-        artwork.year = request.form.get("year", "").strip() or None
-        artwork.technique = request.form.get("technique", artwork.technique).strip()
-        artwork.is_published = bool(request.form.get("is_published"))
+        new_title = request.form.get("title", artwork.title).strip()
+        new_category = request.form.get("category", artwork.category).strip()
+        new_year = request.form.get("year", "").strip() or None
+        new_technique = request.form.get("technique", artwork.technique).strip()
+        new_published = bool(request.form.get("is_published"))
+
+        updates = dict(
+            title=new_title,
+            category=new_category,
+            year=new_year,
+            technique=new_technique,
+            is_published=new_published,
+        )
 
         file = request.files.get("image")
         if file and _allowed(file.filename):
-            cat_slug = slugify(artwork.category) if artwork.category else "uncategorized"
-            title_slug = slugify(artwork.title)
+            cat_slug = slugify(new_category) if new_category else "uncategorized"
+            title_slug = slugify(new_title)
             filename_base = f"{title_slug}-{artwork.id}"
-            artwork.image_path = f"/img/art/{cat_slug}/{filename_base}.jpg"
-            artwork.thumb_path = f"/img/art/{cat_slug}/thumb_{filename_base}.jpg"
+            local_image = f"/img/art/{cat_slug}/{filename_base}.jpg"
+            local_thumb = f"/img/art/{cat_slug}/thumb_{filename_base}.jpg"
 
             with tempfile.TemporaryDirectory() as tmpdir:
                 tmp_path = Path(tmpdir) / secure_filename(file.filename)
@@ -161,16 +172,19 @@ def edit(id):
                         folder=f"pyartist/thumbs/{cat_slug}",
                         public_id=f"thumb_{filename_base}",
                     )
-                    artwork.drive_file_id = web_result["secure_url"]
-                    artwork.drive_thumb_id = thumb_result["secure_url"]
-                    artwork.image_path = web_result["secure_url"]
-                    artwork.thumb_path = thumb_result["secure_url"]
+                    updates.update(
+                        image_path=web_result["secure_url"],
+                        thumb_path=thumb_result["secure_url"],
+                        drive_file_id=web_result["secure_url"],
+                        drive_thumb_id=thumb_result["secure_url"],
+                    )
                 except Exception as exc:
                     logger.error("Cloudinary upload fallito (edit): %s", exc, exc_info=True)
+                    updates.update(image_path=local_image, thumb_path=local_thumb)
                     flash(f"Cloudinary non disponibile: {exc}", "warning")
 
-        db.session.commit()
-        flash(f"Opera «{artwork.title}» aggiornata.", "success")
+        tdb.artwork_update(id, **updates)
+        flash(f"Opera «{new_title}» aggiornata.", "success")
         return redirect(url_for("artworks.list_artworks"))
 
     return render_template("artworks/edit.html", artwork=artwork, categories=categories)
@@ -179,18 +193,14 @@ def edit(id):
 @artworks_bp.route("/<int:id>/delete", methods=["POST"])
 @login_required
 def delete(id):
-    artwork = Artwork.query.get_or_404(id)
+    artwork = tdb.artwork_get(id)
 
-    # Elimina da Cloudinary se presenti URL in archivio
     if artwork.drive_file_id or artwork.drive_thumb_id:
         try:
-            from cloudinary_storage import delete_from_archive
             import re
+            from cloudinary_storage import delete_from_archive
 
             def _public_id_from_url(url: str) -> str:
-                # Estrae il public_id dall'URL Cloudinary
-                # es: https://res.cloudinary.com/cloud/image/upload/v123/pyartist/web/cat/name.jpg
-                # → pyartist/web/cat/name
                 match = re.search(r"/upload/(?:v\d+/)?(.+?)(?:\.\w+)?$", url or "")
                 return match.group(1) if match else url
 
@@ -202,8 +212,7 @@ def delete(id):
             logger.error("Cloudinary delete fallito: %s", exc, exc_info=True)
             flash(f"Impossibile eliminare file su Cloudinary: {exc}", "warning")
 
-    db.session.delete(artwork)
-    db.session.commit()
+    tdb.artwork_delete(id)
     flash(f"Opera «{artwork.title}» eliminata.", "success")
     return redirect(url_for("artworks.list_artworks"))
 
@@ -212,7 +221,5 @@ def delete(id):
 @login_required
 def reorder():
     ids = request.json.get("ids", [])
-    for position, artwork_id in enumerate(ids):
-        Artwork.query.filter_by(id=artwork_id).update({"position": position})
-    db.session.commit()
+    tdb.artwork_reorder([(artwork_id, position) for position, artwork_id in enumerate(ids)])
     return jsonify({"ok": True})

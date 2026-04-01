@@ -8,25 +8,23 @@ import logging
 import zipfile
 from pathlib import Path
 
-from models import Gallery
+import turso_db as tdb
 
 GALLERY_JSON_PATH = Path(__file__).parent.parent / "website" / "data" / "gallery.json"
 
 logger = logging.getLogger(__name__)
 
 
-def generate_gallery_json(gallery: Gallery) -> dict:
+def generate_gallery_json(gallery) -> dict:
     """Build structured gallery JSON, write to website/data/gallery.json, return dict.
 
     Le categorie sono ordinate per Category.position (poi alphabeticamente come fallback).
     All'interno di ogni categoria le opere rispettano l'ordinamento GalleryItem.position.
     """
-    from models import Category
-
     # Mappa slug → position (per ordinare le categorie nella struttura finale)
     cat_positions: dict[str, int] = {
         c.slug: c.position
-        for c in Category.query.order_by(Category.position).all()
+        for c in tdb.category_list()
     }
 
     categories: dict[str, list] = {}

@@ -9,7 +9,7 @@ import logging
 import requests
 from flask import Blueprint, flash, redirect, render_template, send_file, url_for
 
-from models import Gallery
+import turso_db as tdb
 from utils import login_required
 
 sync_bp = Blueprint("sync_panel", __name__, url_prefix="/sync")
@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 @sync_bp.route("/")
 @login_required
 def sync():
-    galleries = Gallery.query.order_by(Gallery.created_at.desc()).all()
+    galleries = tdb.gallery_list()
     return render_template("sync/sync.html", galleries=galleries)
 
 
 @sync_bp.route("/zip/<int:gallery_id>", methods=["POST"])
 @login_required
 def download_zip(gallery_id):
-    gallery = Gallery.query.get_or_404(gallery_id)
+    gallery = tdb.gallery_get(gallery_id)
     try:
         from gallery_builder import build_zip
         buf = build_zip(gallery)
@@ -46,7 +46,7 @@ def download_zip(gallery_id):
 @sync_bp.route("/ftp/<int:gallery_id>", methods=["POST"])
 @login_required
 def ftp_publish(gallery_id):
-    gallery = Gallery.query.get_or_404(gallery_id)
+    gallery = tdb.gallery_get(gallery_id)
 
     try:
         from gallery_builder import generate_gallery_json, _slugify

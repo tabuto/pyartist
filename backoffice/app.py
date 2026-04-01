@@ -1,37 +1,18 @@
 import logging
 import os
 
-import requests as http_client
 from flask import Flask, render_template, render_template_string, session, redirect, url_for, abort
-from models import db, Artwork, Gallery, Category
+from models import db
 from oauth import configure_oauth, oauth
 from utils import login_required
 from dotenv import load_dotenv, find_dotenv
+import turso_db as tdb
 
 # override=True: sovrascrive sempre le env vars con i valori del .env
 load_dotenv(find_dotenv(), override=True)
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-
-
-def _turso_http(sql: str, timeout: int = 6) -> list[list]:
-    """Esegue una query su Turso via HTTP API (bypass libsql/WebSocket).
-    Ritorna la lista di righe come lista di liste di valori.
-    Solleva RuntimeError in caso di errore o timeout."""
-    url = os.environ.get("TURSO_URL", "").replace("libsql://", "https://")
-    token = os.environ.get("TURSO_AUTH_TOKEN", "")
-    if not url or not token:
-        raise RuntimeError("TURSO_URL / TURSO_AUTH_TOKEN non configurati")
-    resp = http_client.post(
-        f"{url}/v2/pipeline",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        json={"requests": [{"type": "execute", "stmt": {"sql": sql}}, {"type": "close"}]},
-        timeout=timeout,
-    )
-    resp.raise_for_status()
-    rows = resp.json()["results"][0]["response"]["result"]["rows"]
-    return [[cell.get("value") for cell in row] for row in rows]
 
 
 def _turso_engine_config():
@@ -66,12 +47,13 @@ def _check_connectivity(app):
     """Verifica la connettività verso Turso e Cloudinary al boot e logga l'esito."""
     # ── Turso via HTTP API ─────────────────────────────────────────────────────
     try:
-        rows = _turso_http("SELECT 1", timeout=10)
+        rows = tdb.execute("SELECT 1", timeout=10)
         logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", rows[0][0] if rows else "?")
-    except http_client.Timeout:
-        logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
     except Exception as exc:
-        logger.error("❌ Turso: errore di connessione — %s", exc)
+        if "timeout" in str(exc).lower() or "timed out" in str(exc).lower():
+            logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
+        else:
+            logger.error("❌ Turso: errore di connessione — %s", exc)
 
     # ── Cloudinary ─────────────────────────────────────────────────────────────
     cloudinary_url = os.environ.get("CLOUDINARY_URL", "")
@@ -186,7 +168,7 @@ def create_app():
         artwork_count = published_count = gallery_count = category_count = 0
         try:
             logger.info("home: query Turso via HTTP API...")
-            rows = _turso_http("""
+            rows = tdb.execute("""
                 SELECT
                     COUNT(*) AS total,
                     SUM(CASE WHEN is_published = 1 THEN 1 ELSE 0 END) AS published
@@ -196,13 +178,11 @@ def create_app():
                 artwork_count = int(rows[0][0] or 0)
                 published_count = int(rows[0][1] or 0)
 
-            gallery_count = int((_turso_http("SELECT COUNT(*) FROM gallery") or [[0]])[0][0] or 0)
-            category_count = int((_turso_http("SELECT COUNT(*) FROM category") or [[0]])[0][0] or 0)
+            gallery_count = int((tdb.execute("SELECT COUNT(*) FROM gallery") or [[0]])[0][0] or 0)
+            category_count = int((tdb.execute("SELECT COUNT(*) FROM category") or [[0]])[0][0] or 0)
 
             logger.info("home: stats OK — opere=%s pubbl=%s gallerie=%s categorie=%s",
                         artwork_count, published_count, gallery_count, category_count)
-        except http_client.Timeout:
-            logger.error("home: timeout API Turso")
         except Exception as exc:
             logger.error("home: errore query Turso — %s", exc, exc_info=True)
 
