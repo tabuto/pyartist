@@ -172,12 +172,17 @@ def create_app():
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 
         def _query_stats():
-            return (
-                Artwork.query.count(),
-                Artwork.query.filter_by(is_published=True).count(),
-                Gallery.query.count(),
-                Category.query.count(),
-            )
+            with app.app_context():
+                logger.info("home: avvio query Turso...")
+                aw = Artwork.query.count()
+                logger.info("home: artwork=%s", aw)
+                pub = Artwork.query.filter_by(is_published=True).count()
+                logger.info("home: published=%s", pub)
+                gal = Gallery.query.count()
+                logger.info("home: gallery=%s", gal)
+                cat = Category.query.count()
+                logger.info("home: category=%s", cat)
+                return aw, pub, gal, cat
 
         artwork_count = published_count = gallery_count = category_count = 0
         try:
@@ -185,8 +190,12 @@ def create_app():
                 artwork_count, published_count, gallery_count, category_count = (
                     ex.submit(_query_stats).result(timeout=8)
                 )
-        except (FuturesTimeout, Exception):
-            pass  # mostra la home con contatori a 0 se Turso non risponde
+            logger.info("home: stats OK — opere=%s pubbl=%s gallerie=%s categorie=%s",
+                        artwork_count, published_count, gallery_count, category_count)
+        except FuturesTimeout:
+            logger.error("home: timeout Turso dopo 8s — mostro contatori a zero")
+        except Exception as exc:
+            logger.error("home: eccezione nelle query Turso — %s", exc, exc_info=True)
 
         return render_template(
             "home.html",
