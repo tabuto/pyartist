@@ -1,4 +1,6 @@
+import logging
 import os
+
 from flask import Flask, render_template, render_template_string, session, redirect, url_for, abort
 from models import db, Artwork, Gallery, Category
 from oauth import configure_oauth, oauth
@@ -7,6 +9,9 @@ from dotenv import load_dotenv, find_dotenv
 
 # override=True: sovrascrive sempre le env vars con i valori del .env
 load_dotenv(find_dotenv(), override=True)
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 
 def _turso_engine_config():
@@ -37,7 +42,36 @@ def _turso_engine_config():
     return db_uri, engine_opts
 
 
-def create_app():
+def _check_connectivity(app):
+    """Verifica la connettività verso Turso e Cloudinary al boot e logga l'esito."""
+    with app.app_context():
+        # ── Turso ──────────────────────────────────────────────────────────────
+        try:
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FT
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                count = ex.submit(lambda: db.session.execute(db.text("SELECT 1")).scalar()).result(timeout=10)
+            logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", count)
+        except FT:
+            logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
+        except Exception as exc:
+            logger.error("❌ Turso: errore di connessione — %s", exc)
+
+        # ── Cloudinary ─────────────────────────────────────────────────────────
+        cloudinary_url = os.environ.get("CLOUDINARY_URL", "")
+        if not cloudinary_url:
+            logger.warning("⚠️  Cloudinary: CLOUDINARY_URL non configurato")
+        else:
+            try:
+                import cloudinary
+                import cloudinary.api
+                cloudinary.config(cloudinary_url=cloudinary_url)
+                result = cloudinary.api.ping()
+                logger.info("✅ Cloudinary: connessione OK (status=%s)", result.get("status"))
+            except Exception as exc:
+                logger.error("❌ Cloudinary: errore di connessione — %s", exc)
+
+
+
     app = Flask(__name__)
 
     # Legge FLASK_* da .env (es. FLASK_SECRET_KEY)
@@ -67,6 +101,8 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+
+    _check_connectivity(app)
 
     # ── Register blueprints ────────────────────────────────────────────────────
     from artworks_bp import artworks_bp
