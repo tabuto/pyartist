@@ -51,11 +51,17 @@ def _check_connectivity(app):
 
     try:
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FT
-        with ThreadPoolExecutor(max_workers=1) as ex:
-            count = ex.submit(_turso_ping).result(timeout=10)
-        logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", count)
-    except FT:
-        logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(_turso_ping)
+        try:
+            count = future.result(timeout=10)
+            logger.info("✅ Turso: connessione OK (SELECT 1 = %s)", count)
+        except FT:
+            logger.error("❌ Turso: timeout dopo 10s — il database non risponde")
+        except Exception as exc:
+            logger.error("❌ Turso: errore di connessione — %s", exc)
+        finally:
+            executor.shutdown(wait=False)
     except Exception as exc:
         logger.error("❌ Turso: errore di connessione — %s", exc)
 
@@ -169,7 +175,7 @@ def create_app():
     @app.route("/home")
     @login_required
     def home():
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FT
 
         def _query_stats():
             with app.app_context():
@@ -185,17 +191,22 @@ def create_app():
                 return aw, pub, gal, cat
 
         artwork_count = published_count = gallery_count = category_count = 0
+        # NON usare il context manager: with ThreadPoolExecutor chiama
+        # shutdown(wait=True) su __exit__, bloccando comunque il thread.
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(_query_stats)
         try:
-            with ThreadPoolExecutor(max_workers=1) as ex:
-                artwork_count, published_count, gallery_count, category_count = (
-                    ex.submit(_query_stats).result(timeout=8)
-                )
+            artwork_count, published_count, gallery_count, category_count = (
+                future.result(timeout=8)
+            )
             logger.info("home: stats OK — opere=%s pubbl=%s gallerie=%s categorie=%s",
                         artwork_count, published_count, gallery_count, category_count)
-        except FuturesTimeout:
+        except FT:
             logger.error("home: timeout Turso dopo 8s — mostro contatori a zero")
         except Exception as exc:
             logger.error("home: eccezione nelle query Turso — %s", exc, exc_info=True)
+        finally:
+            executor.shutdown(wait=False)  # libera senza aspettare il thread bloccato
 
         return render_template(
             "home.html",
