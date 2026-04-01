@@ -27,13 +27,49 @@
     </div>
 
     <div>
+      <label class="block text-sm font-medium mb-1" for="formato">Formato</label>
+      <select id="formato" name="formato" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+        <option value="">— nessuno —</option>
+        {% for f in formati %}
+        <option value="{{ f.label }}" {% if artwork.formato == f.label %}selected{% endif %}>{{ f.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="tecnica">Tecnica</label>
+      <select id="tecnica" name="tecnica" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+        <option value="">— nessuna —</option>
+        {% for t in tecniche %}
+        <option value="{{ t.label }}" {% if artwork.tecnica == t.label %}selected{% endif %}>{{ t.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="collezione">Collezione</label>
+      <select id="collezione" name="collezione" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+        <option value="">— nessuna —</option>
+        {% for c in collezioni %}
+        <option value="{{ c.label }}" {% if artwork.collezione == c.label %}selected{% endif %}>{{ c.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
       <label class="block text-sm font-medium mb-1" for="year">Anno</label>
       <input type="text" id="year" name="year" value="{{ artwork.year or '' }}" maxlength="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
     </div>
 
     <div>
-      <label class="block text-sm font-medium mb-1" for="technique">Tecnica</label>
-      <input type="text" id="technique" name="technique" value="{{ artwork.technique }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+      <label class="block text-sm font-medium mb-1" for="technique">Tecnica libera</label>
+      <input type="text" id="technique" name="technique" value="{{ artwork.technique or '' }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+      <p class="text-xs text-gray-400 mt-1">Campo libero, alternativo alla select Tecnica.</p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium mb-1" for="descrizione">Descrizione</label>
+      <textarea id="descrizione" name="descrizione" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">{{ artwork.descrizione or '' }}</textarea>
     </div>
 
     <div class="flex items-center gap-2">

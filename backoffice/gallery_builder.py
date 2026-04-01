@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def generate_gallery_json(gallery) -> dict:
-    """Build structured gallery JSON, write to website/data/gallery.json, return dict.
+    """Build structured gallery JSON, write to website/data/{json_filename}, return dict.
 
     Le categorie sono ordinate per Category.position (poi alphabeticamente come fallback).
     All'interno di ogni categoria le opere rispettano l'ordinamento GalleryItem.position.
@@ -47,8 +47,10 @@ def generate_gallery_json(gallery) -> dict:
         ],
     }
 
-    GALLERY_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(GALLERY_JSON_PATH, "w", encoding="utf-8") as f:
+    json_filename = getattr(gallery, "json_filename", None) or "gallery.json"
+    output_path = GALLERY_JSON_PATH.parent / json_filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     return data

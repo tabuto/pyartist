@@ -21,10 +21,12 @@ _AW_COLS = [
     "id", "title", "category", "year", "technique",
     "image_path", "thumb_path", "drive_file_id", "drive_thumb_id",
     "is_published", "position",
+    "formato", "tecnica", "descrizione", "collezione",
 ]
 _CAT_COLS = ["id", "name", "slug", "position"]
-_GAL_COLS = ["id", "name", "description", "created_at", "updated_at"]
+_GAL_COLS = ["id", "name", "description", "created_at", "updated_at", "json_filename"]
 _GI_COLS  = ["id", "gallery_id", "artwork_id", "position"]
+_OPT_COLS = ["id", "label", "position"]
 
 # ── Core HTTP helpers ──────────────────────────────────────────────────────────
 
@@ -107,6 +109,9 @@ class ArtworkNS(SimpleNamespace):
             "details": (
                 f"{self.year}, {self.technique}" if self.year else (self.technique or "")
             ),
+            "formato": self.formato or "",
+            "tecnica": self.tecnica or "",
+            "descrizione": self.descrizione or "",
         }
 
 
@@ -144,14 +149,17 @@ def artwork_create(
     title, category, year, technique,
     image_path, thumb_path, drive_file_id, drive_thumb_id,
     is_published, position,
+    formato=None, tecnica=None, descrizione=None, collezione=None,
 ) -> int:
     execute_write(
         "INSERT INTO artwork "
         "(title, category, year, technique, image_path, thumb_path, "
-        "drive_file_id, drive_thumb_id, is_published, position) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "drive_file_id, drive_thumb_id, is_published, position, "
+        "formato, tecnica, descrizione, collezione) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [title, category, year, technique, image_path, thumb_path,
-         drive_file_id, drive_thumb_id, is_published, position],
+         drive_file_id, drive_thumb_id, is_published, position,
+         formato, tecnica, descrizione, collezione],
     )
     return last_insert_id()
 
@@ -274,12 +282,19 @@ def gallery_get(id: int) -> SimpleNamespace:
     return g
 
 
-def gallery_create(name: str, description: str | None) -> int:
+def gallery_create(name: str, description: str | None, json_filename: str = "gallery.json") -> int:
     execute_write(
-        "INSERT INTO gallery (name, description) VALUES (?, ?)",
-        [name, description],
+        "INSERT INTO gallery (name, description, json_filename) VALUES (?, ?, ?)",
+        [name, description, json_filename],
     )
     return last_insert_id()
+
+
+def gallery_update(id: int, name: str, description: str | None, json_filename: str):
+    execute_write(
+        "UPDATE gallery SET name = ?, description = ?, json_filename = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [name, description, json_filename, id],
+    )
 
 
 def gallery_item_exists(gallery_id: int, artwork_id: int) -> bool:
@@ -326,3 +341,55 @@ def gallery_item_reorder(id_position_pairs):
             "UPDATE gallery_item SET position = ? WHERE id = ?",
             [pos, item_id],
         )
+
+
+# ── Option table helpers (Formato / Tecnica / Collezione) ─────────────────────
+
+def _option_list(table: str) -> list[SimpleNamespace]:
+    rows = execute(f"SELECT {', '.join(_OPT_COLS)} FROM {table} ORDER BY position, label")
+    return [_make(r, _OPT_COLS) for r in rows]
+
+
+def _option_get(table: str, id: int) -> SimpleNamespace:
+    rows = execute(f"SELECT {', '.join(_OPT_COLS)} FROM {table} WHERE id = ?", [id])
+    if not rows:
+        abort(404)
+    return _make(rows[0], _OPT_COLS)
+
+
+def _option_create(table: str, label: str, position: int) -> int:
+    execute_write(f"INSERT INTO {table} (label, position) VALUES (?, ?)", [label, position])
+    return last_insert_id()
+
+
+def _option_max_position(table: str) -> int:
+    rows = execute(f"SELECT MAX(position) FROM {table}")
+    return int(rows[0][0] or 0)
+
+
+def _option_update(table: str, id: int, label: str):
+    execute_write(f"UPDATE {table} SET label = ? WHERE id = ?", [label, id])
+
+
+def _option_delete(table: str, id: int):
+    execute_write(f"DELETE FROM {table} WHERE id = ?", [id])
+
+
+def formato_list() -> list[SimpleNamespace]:   return _option_list("formato_option")
+def formato_get(id: int):                       return _option_get("formato_option", id)
+def formato_create(label: str) -> int:          return _option_create("formato_option", label, _option_max_position("formato_option") + 1)
+def formato_update(id: int, label: str):        _option_update("formato_option", id, label)
+def formato_delete(id: int):                    _option_delete("formato_option", id)
+
+def tecnica_list() -> list[SimpleNamespace]:    return _option_list("tecnica_option")
+def tecnica_get(id: int):                       return _option_get("tecnica_option", id)
+def tecnica_create(label: str) -> int:          return _option_create("tecnica_option", label, _option_max_position("tecnica_option") + 1)
+def tecnica_update(id: int, label: str):        _option_update("tecnica_option", id, label)
+def tecnica_delete(id: int):                    _option_delete("tecnica_option", id)
+
+def collezione_list() -> list[SimpleNamespace]: return _option_list("collezione_option")
+def collezione_get(id: int):                    return _option_get("collezione_option", id)
+def collezione_create(label: str) -> int:       return _option_create("collezione_option", label, _option_max_position("collezione_option") + 1)
+def collezione_update(id: int, label: str):     _option_update("collezione_option", id, label)
+def collezione_delete(id: int):                 _option_delete("collezione_option", id)
+

@@ -48,6 +48,7 @@ def ftp_sync(
     gallery_json: bytes | io.BytesIO,
     images: list[tuple[io.BytesIO, str, str]],
     md_files: list[tuple[io.BytesIO, str]] | None = None,
+    gallery_json_path: str | None = None,
 ) -> list[dict]:
     """Carica gallery.json, immagini per categoria e file .md sul server FTP.
 
@@ -55,6 +56,7 @@ def ftp_sync(
         gallery_json: contenuto del gallery.json come bytes o BytesIO.
         images: lista di (stream, category_slug, filename) — stream da Google Drive.
         md_files: lista opzionale di (stream, filename) per file Markdown.
+        gallery_json_path: percorso remoto del file JSON; se None usa FTP_GALLERY_JSON_PATH.
 
     Variabili d'ambiente richieste:
         FTP_HOST, FTP_USER, FTP_PASSWORD
@@ -74,7 +76,7 @@ def ftp_sync(
     password = os.environ.get("FTP_PASSWORD") or os.environ.get("FTP_PASS", "")
     use_tls = os.environ.get("FTP_USE_TLS", "false").lower() == "true"
     images_path = os.environ.get("FTP_IMAGES_PATH", "/img/art").rstrip("/")
-    gallery_json_path = os.environ.get("FTP_GALLERY_JSON_PATH", "/data/gallery.json")
+    resolved_gallery_json_path = gallery_json_path or os.environ.get("FTP_GALLERY_JSON_PATH", "/data/gallery.json")
     content_path = os.environ.get("FTP_CONTENT_PATH", "/content").rstrip("/")
 
     log: list[dict] = []
@@ -91,7 +93,7 @@ def ftp_sync(
         _ftp_upload_stream(
             ftp,
             gallery_json if isinstance(gallery_json, io.BytesIO) else io.BytesIO(gallery_json),
-            gallery_json_path,
+            resolved_gallery_json_path,
             log,
         )
 

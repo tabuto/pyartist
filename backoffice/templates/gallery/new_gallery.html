@@ -12,6 +12,12 @@
       <label class="block text-sm font-medium mb-1">Descrizione</label>
       <textarea name="description" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"></textarea>
     </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Nome file JSON</label>
+      <input type="text" name="json_filename" value="gallery.json" placeholder="gallery.json"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+      <p class="text-xs text-gray-400 mt-1">Deve terminare con <code>.json</code>. Es. <code>gallery-principale.json</code></p>
+    </div>
     <div class="flex gap-3">
       <button type="submit" class="bg-accent text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Crea Galleria</button>
       <a href="{{ url_for('gallery.gallery_list') }}" class="border border-gray-300 text-gray-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Annulla</a>

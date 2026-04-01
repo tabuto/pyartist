@@ -42,17 +42,25 @@ def list_artworks():
 @login_required
 def upload():
     categories = tdb.category_list()
+    formati = tdb.formato_list()
+    tecniche = tdb.tecnica_list()
+    collezioni = tdb.collezione_list()
 
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         category_slug = request.form.get("category", "").strip()
         year = request.form.get("year", "").strip()
-        technique = request.form.get("technique", "Acquerello su carta").strip()
+        technique = request.form.get("technique", "").strip()
+        formato = request.form.get("formato", "").strip() or None
+        tecnica = request.form.get("tecnica", "").strip() or None
+        descrizione = request.form.get("descrizione", "").strip() or None
+        collezione = request.form.get("collezione", "").strip() or None
         file = request.files.get("image")
 
         if not title or not file or not _allowed(file.filename):
             flash("Titolo e immagine valida sono obbligatori.", "error")
-            return render_template("artworks/upload.html", categories=categories)
+            return render_template("artworks/upload.html", categories=categories,
+                                   formati=formati, tecniche=tecniche, collezioni=collezioni)
 
         cat_slug = slugify(category_slug) if category_slug else "uncategorized"
         title_slug = slugify(title)
@@ -63,13 +71,17 @@ def upload():
             title=title,
             category=category_slug,
             year=year or None,
-            technique=technique,
+            technique=technique or None,
             image_path=None,
             thumb_path=None,
             drive_file_id=None,
             drive_thumb_id=None,
             is_published=False,
             position=max_pos + 1,
+            formato=formato,
+            tecnica=tecnica,
+            descrizione=descrizione,
+            collezione=collezione,
         )
 
         filename_base = f"{title_slug}-{artwork_id}"
@@ -116,7 +128,8 @@ def upload():
         flash(f"Opera «{title}» caricata con successo.", "success")
         return redirect(url_for("artworks.list_artworks"))
 
-    return render_template("artworks/upload.html", categories=categories)
+    return render_template("artworks/upload.html", categories=categories,
+                           formati=formati, tecniche=tecniche, collezioni=collezioni)
 
 
 @artworks_bp.route("/<int:id>/edit", methods=["GET", "POST"])
@@ -124,13 +137,20 @@ def upload():
 def edit(id):
     artwork = tdb.artwork_get(id)
     categories = tdb.category_list()
+    formati = tdb.formato_list()
+    tecniche = tdb.tecnica_list()
+    collezioni = tdb.collezione_list()
 
     if request.method == "POST":
         new_title = request.form.get("title", artwork.title).strip()
         new_category = request.form.get("category", artwork.category).strip()
         new_year = request.form.get("year", "").strip() or None
-        new_technique = request.form.get("technique", artwork.technique).strip()
+        new_technique = request.form.get("technique", "").strip() or None
         new_published = bool(request.form.get("is_published"))
+        new_formato = request.form.get("formato", "").strip() or None
+        new_tecnica = request.form.get("tecnica", "").strip() or None
+        new_descrizione = request.form.get("descrizione", "").strip() or None
+        new_collezione = request.form.get("collezione", "").strip() or None
 
         updates = dict(
             title=new_title,
@@ -138,6 +158,10 @@ def edit(id):
             year=new_year,
             technique=new_technique,
             is_published=new_published,
+            formato=new_formato,
+            tecnica=new_tecnica,
+            descrizione=new_descrizione,
+            collezione=new_collezione,
         )
 
         file = request.files.get("image")
@@ -187,7 +211,8 @@ def edit(id):
         flash(f"Opera «{new_title}» aggiornata.", "success")
         return redirect(url_for("artworks.list_artworks"))
 
-    return render_template("artworks/edit.html", artwork=artwork, categories=categories)
+    return render_template("artworks/edit.html", artwork=artwork, categories=categories,
+                           formati=formati, tecniche=tecniche, collezioni=collezioni)
 
 
 @artworks_bp.route("/<int:id>/delete", methods=["POST"])

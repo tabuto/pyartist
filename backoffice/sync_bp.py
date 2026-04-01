@@ -56,6 +56,16 @@ def ftp_publish(gallery_id):
         gallery_data = generate_gallery_json(gallery)
         gallery_json_bytes = json.dumps(gallery_data, ensure_ascii=False, indent=2).encode("utf-8")
 
+        # Percorso FTP: usa json_filename della gallery, con fallback alla variabile d'ambiente
+        import os as _os
+        json_filename = getattr(gallery, "json_filename", None) or "gallery.json"
+        ftp_base = _os.environ.get("FTP_REMOTE_BASE_PATH", "/httpdocs").rstrip("/")
+        ftp_gallery_json_path = (
+            _os.environ.get("FTP_GALLERY_JSON_PATH")
+            if not getattr(gallery, "json_filename", None)
+            else f"{ftp_base}/data/{json_filename}"
+        )
+
         # Scarica immagini da Cloudinary come stream HTTP
         images: list[tuple[io.BytesIO, str, str]] = []
 
@@ -93,7 +103,7 @@ def ftp_publish(gallery_id):
                         "warning",
                     )
 
-        log = ftp_sync(gallery_json_bytes, images)
+        log = ftp_sync(gallery_json_bytes, images, gallery_json_path=ftp_gallery_json_path)
         errors = [e for e in log if e["status"] != "ok"]
         if errors:
             flash(

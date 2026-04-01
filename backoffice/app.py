@@ -106,10 +106,12 @@ def create_app():
 
     # ── Register blueprints ────────────────────────────────────────────────────
     from artworks_bp import artworks_bp
+    from config_bp import config_bp
     from gallery_bp import gallery_bp
     from sync_bp import sync_bp
 
     app.register_blueprint(artworks_bp)
+    app.register_blueprint(config_bp)
     app.register_blueprint(gallery_bp)
     app.register_blueprint(sync_bp)
 

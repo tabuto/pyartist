@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Modifica {{ section }} — PyArtist{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+  <h1 class="font-display text-2xl font-semibold mb-6">Modifica {{ section }}</h1>
+  <form method="post" action="{{ action_url }}" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+    <div>
+      <label class="block text-sm font-medium mb-1">Nome <span class="text-red-500">*</span></label>
+      <input type="text" name="label" value="{{ display_value }}" required
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+    {% if show_slug is defined and show_slug %}
+    <div>
+      <label class="block text-sm font-medium mb-1">Slug</label>
+      <input type="text" name="slug" value="{{ item.slug }}"
+        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+    </div>
+    {% endif %}
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="bg-accent text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Salva</button>
+      <a href="{{ back_url }}" class="border border-gray-300 text-gray-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Annulla</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

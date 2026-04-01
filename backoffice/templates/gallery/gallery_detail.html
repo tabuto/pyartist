@@ -8,8 +8,13 @@
   <a href="{{ url_for('gallery.gallery_list') }}" class="text-sm text-gray-400 hover:text-accent">← Gallerie</a>
 </div>
 
-<h1 class="font-display text-2xl font-semibold mb-1">{{ gallery.name }}</h1>
-{% if gallery.description %}<p class="text-gray-500 text-sm mb-6">{{ gallery.description }}</p>{% endif %}
+<div class="flex items-start justify-between mb-1">
+  <h1 class="font-display text-2xl font-semibold">{{ gallery.name }}</h1>
+  <a href="{{ url_for('gallery.edit_gallery', id=gallery.id) }}"
+     class="text-sm text-accent hover:underline border border-accent rounded-lg px-3 py-1.5">Modifica galleria</a>
+</div>
+{% if gallery.description %}<p class="text-gray-500 text-sm mt-1">{{ gallery.description }}</p>{% endif %}
+<p class="text-xs text-gray-400 mt-1 mb-6">File JSON: <code class="bg-gray-100 px-1 rounded">{{ gallery.json_filename or 'gallery.json' }}</code></p>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
   <!-- Gallery items -->
