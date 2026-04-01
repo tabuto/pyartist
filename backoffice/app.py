@@ -72,6 +72,7 @@ def _check_connectivity(app):
 
 
 
+def create_app():
     app = Flask(__name__)
 
     # Legge FLASK_* da .env (es. FLASK_SECRET_KEY)
