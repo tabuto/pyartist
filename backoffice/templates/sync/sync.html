@@ -9,7 +9,7 @@
     <div class="flex items-start justify-between mb-4">
       <div>
         <h2 class="font-display text-lg font-semibold">{{ g.name }}</h2>
-        <p class="text-sm text-gray-400 mt-0.5">{{ g.items | length }} opere · Creata il {{ g.created_at.strftime('%d/%m/%Y') }}</p>
+        <p class="text-sm text-gray-400 mt-0.5">{{ g.items | length }} opere · Aggiornata il {{ g.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
       </div>
     </div>
     <div class="flex gap-3 flex-wrap">
