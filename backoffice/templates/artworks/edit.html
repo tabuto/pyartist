@@ -7,6 +7,9 @@
   {% if artwork.thumb_path %}
   <div class="mb-5">
     <img src="{{ artwork.thumb_path }}" alt="{{ artwork.title }}" class="w-32 h-32 object-cover rounded-lg border border-gray-200">
+    {% if artwork.image_path %}
+    <a href="{{ artwork.image_path }}" target="_blank" class="mt-2 inline-block text-sm text-blue-600 hover:underline truncate max-w-xs">{{ artwork.image_path }}</a>
+    {% endif %}
   </div>
   {% endif %}
 
