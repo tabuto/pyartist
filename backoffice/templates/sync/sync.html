@@ -18,7 +18,7 @@
           ⬇ Scarica ZIP
         </button>
       </form>
-      <form action="{{ url_for('sync_panel.ftp_publish', gallery_id=g.id) }}" method="post" onsubmit="return confirm('Pubblicare gallery.json via FTP?')">
+      <form action="{{ url_for('sync_panel.ftp_publish', gallery_id=g.id) }}" method="post" onsubmit="return confirm('Pubblicare {{ g.json_filename }} via FTP?')">
         <button type="submit" class="flex items-center gap-2 bg-[#1A1A1A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
           ↑ Pubblica via FTP
         </button>
