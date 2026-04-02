@@ -135,8 +135,8 @@ def create_app():
             return redirect(url_for("login"))
 
         user_info = token.get("userinfo")
-        allowed_email = os.environ.get("ALLOWED_EMAIL", "")
-        if not user_info or user_info.get("email") != allowed_email:
+        allowed_emails = [e.strip() for e in os.environ.get("ALLOWED_EMAIL", "").split(",") if e.strip()]
+        if not user_info or user_info.get("email") not in allowed_emails:
             abort(403)
         session.permanent = True
         session["user"] = {
