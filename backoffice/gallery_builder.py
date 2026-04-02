@@ -67,10 +67,11 @@ def build_zip(gallery) -> io.BytesIO:
     import requests
 
     gallery_data = generate_gallery_json(gallery)
+    json_filename = getattr(gallery, "json_filename", None) or "gallery.json"
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("data/gallery.json", json.dumps(gallery_data, ensure_ascii=False, indent=2))
+        zf.writestr(f"data/{json_filename}", json.dumps(gallery_data, ensure_ascii=False, indent=2))
 
         for item in sorted(gallery.items, key=lambda i: i.position):
             artwork = item.artwork
