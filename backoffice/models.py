@@ -18,6 +18,7 @@ class Artwork(db.Model):
     drive_thumb_id = db.Column(db.String(255), nullable=True)
     is_published = db.Column(db.Boolean, default=False)
     position = db.Column(db.Integer, default=0)
+    descrizione = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
         return {
@@ -26,6 +27,7 @@ class Artwork(db.Model):
             "image": self.image_path,
             "thumb": self.thumb_path,
             "details": f"{self.year}, {self.technique}" if self.year else self.technique,
+            "descrizione": self.descrizione or "",
         }
 
 
