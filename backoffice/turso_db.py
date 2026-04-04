@@ -97,6 +97,12 @@ def _cast(d: dict) -> dict:
     return d
 
 
+def _get_optimized_url(original_url: str | None) -> str:
+    if not original_url:
+        return ""
+    return original_url.replace("/upload/", "/upload/f_auto,q_auto/")
+
+
 class ArtworkNS(SimpleNamespace):
     """SimpleNamespace per Artwork con to_dict() compatibile col modello ORM."""
 
@@ -104,8 +110,8 @@ class ArtworkNS(SimpleNamespace):
         return {
             "title": self.title,
             "category": self.category,
-            "image": self.image_path,
-            "thumb": self.thumb_path,
+            "image": _get_optimized_url(self.image_path),
+            "thumb": _get_optimized_url(self.thumb_path),
             "details": (
                 f"{self.year}, {self.technique}" if self.year else (self.technique or "")
             ),

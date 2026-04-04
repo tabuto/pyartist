@@ -21,11 +21,12 @@ class Artwork(db.Model):
     descrizione = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
+        from turso_db import _get_optimized_url
         return {
             "title": self.title,
             "category": self.category,
-            "image": self.image_path,
-            "thumb": self.thumb_path,
+            "image": _get_optimized_url(self.image_path),
+            "thumb": _get_optimized_url(self.thumb_path),
             "details": f"{self.year}, {self.technique}" if self.year else self.technique,
             "descrizione": self.descrizione or "",
         }
