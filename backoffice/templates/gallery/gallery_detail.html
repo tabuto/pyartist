@@ -16,10 +16,13 @@
 {% if gallery.description %}<p class="text-gray-500 text-sm mt-1">{{ gallery.description }}</p>{% endif %}
 <p class="text-xs text-gray-400 mt-1 mb-6">File JSON: <code class="bg-gray-100 px-1 rounded">{{ gallery.json_filename or 'gallery.json' }}</code></p>
 
+<!-- Form bulk (fuori dai pannelli per evitare form annidati) -->
+<form id="form-remove" action="{{ url_for('gallery.remove_items_bulk', id=gallery.id) }}" method="post" class="hidden"></form>
+<form id="form-add" action="{{ url_for('gallery.add_items_bulk', id=gallery.id) }}" method="post" class="hidden"></form>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
   <!-- Gallery items -->
   <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-    <form action="{{ url_for('gallery.remove_items_bulk', id=gallery.id) }}" method="post" id="form-remove">
     <div class="px-5 py-4 border-b border-gray-100 font-medium text-sm text-gray-600 flex items-center justify-between">
       <label class="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" id="select-all-items" class="w-4 h-4 accent-[#7A9EB1]">
@@ -27,7 +30,7 @@
       </label>
       <div class="flex items-center gap-3">
         <span class="text-xs text-gray-400">Trascina per riordinare</span>
-        <button type="submit" id="btn-remove" disabled
+        <button type="submit" form="form-remove" id="btn-remove" disabled
           class="text-xs text-red-500 border border-red-300 rounded px-2 py-1 disabled:opacity-30 hover:bg-red-50 transition-colors">
           Rimuovi selezionati
         </button>
@@ -37,7 +40,7 @@
       {% for item in gallery.items %}
       <li data-id="{{ item.id }}" class="flex items-center justify-between px-5 py-3 text-sm">
         <div class="flex items-center gap-3">
-          <input type="checkbox" name="item_ids" value="{{ item.id }}" class="item-check w-4 h-4 accent-[#7A9EB1]">
+          <input type="checkbox" name="item_ids" value="{{ item.id }}" form="form-remove" class="item-check w-4 h-4 accent-[#7A9EB1]">
           <span class="cursor-grab text-gray-400 drag-handle">⠿</span>
           <div>
             <span class="font-medium">{{ item.artwork.title }}</span>
@@ -53,18 +56,16 @@
       <li class="px-5 py-6 text-center text-gray-400 text-sm">Nessuna opera aggiunta.</li>
       {% endfor %}
     </ul>
-    </form>
   </div>
 
   <!-- Available artworks -->
   <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-    <form action="{{ url_for('gallery.add_items_bulk', id=gallery.id) }}" method="post" id="form-add">
     <div class="px-5 py-4 border-b border-gray-100 font-medium text-sm text-gray-600 flex items-center justify-between">
       <label class="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" id="select-all-available" class="w-4 h-4 accent-[#7A9EB1]">
         <span>Opere disponibili</span>
       </label>
-      <button type="submit" id="btn-add" disabled
+      <button type="submit" form="form-add" id="btn-add" disabled
         class="text-xs text-accent border border-accent rounded px-2 py-1 disabled:opacity-30 hover:bg-accent hover:text-white transition-colors">
         Aggiungi selezionati
       </button>
@@ -73,7 +74,7 @@
       {% for artwork in available %}
       <li class="flex items-center justify-between px-5 py-3 text-sm">
         <div class="flex items-center gap-3">
-          <input type="checkbox" name="artwork_ids" value="{{ artwork.id }}" class="avail-check w-4 h-4 accent-[#7A9EB1]">
+          <input type="checkbox" name="artwork_ids" value="{{ artwork.id }}" form="form-add" class="avail-check w-4 h-4 accent-[#7A9EB1]">
           <div>
             <span class="font-medium">{{ artwork.title }}</span>
             <span class="ml-2 text-gray-400 text-xs">{{ artwork.category }}</span>
@@ -88,7 +89,6 @@
       <li class="px-5 py-6 text-center text-gray-400 text-sm">Tutte le opere sono già in galleria.</li>
       {% endfor %}
     </ul>
-    </form>
   </div>
 </div>
 
