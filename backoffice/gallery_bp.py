@@ -95,6 +95,34 @@ def remove_item(id):
     return redirect(url_for("gallery.gallery_detail", id=id))
 
 
+@gallery_bp.route("/<int:id>/items/remove-bulk", methods=["POST"])
+@login_required
+def remove_items_bulk(id):
+    tdb.gallery_get(id)
+    item_ids = request.form.getlist("item_ids", type=int)
+    for item_id in item_ids:
+        tdb.gallery_item_delete(item_id)
+    if item_ids:
+        flash(f"{len(item_ids)} opere rimosse dalla galleria.", "success")
+    return redirect(url_for("gallery.gallery_detail", id=id))
+
+
+@gallery_bp.route("/<int:id>/items/add-bulk", methods=["POST"])
+@login_required
+def add_items_bulk(id):
+    tdb.gallery_get(id)
+    artwork_ids = request.form.getlist("artwork_ids", type=int)
+    added = 0
+    for artwork_id in artwork_ids:
+        if not tdb.gallery_item_exists(id, artwork_id):
+            max_pos = tdb.gallery_item_max_position(id)
+            tdb.gallery_item_add(id, artwork_id, max_pos + 1)
+            added += 1
+    if added:
+        flash(f"{added} opere aggiunte alla galleria.", "success")
+    return redirect(url_for("gallery.gallery_detail", id=id))
+
+
 @gallery_bp.route("/<int:id>/items/reorder", methods=["POST"])
 @login_required
 def reorder_items(id):

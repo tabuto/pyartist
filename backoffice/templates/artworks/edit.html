@@ -1,5 +1,55 @@
 {% extends "base.html" %}
 {% block title %}Modifica Opera — PyArtist{% endblock %}
+{% block head %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('image');
+    const zone = document.getElementById('drop-zone');
+    const placeholder = document.getElementById('drop-placeholder');
+    const preview = document.getElementById('drop-preview');
+    const previewImg = document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    const clearBtn = document.getElementById('drop-clear');
+
+    function showPreview(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        previewName.textContent = file.name;
+        placeholder.classList.add('hidden');
+        preview.classList.remove('hidden');
+        preview.classList.add('flex');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    input.addEventListener('change', () => showPreview(input.files[0]));
+
+    clearBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      input.value = '';
+      placeholder.classList.remove('hidden');
+      preview.classList.add('hidden');
+      preview.classList.remove('flex');
+    });
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('border-accent'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('border-accent'));
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      zone.classList.remove('border-accent');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        showPreview(file);
+      }
+    });
+  });
+</script>
+{% endblock %}
 {% block content %}
 <div class="max-w-xl">
   <h1 class="font-display text-2xl font-semibold mb-6">Modifica Opera</h1>
@@ -81,8 +131,20 @@
     </div>
 
     <div>
-      <label class="block text-sm font-medium mb-1" for="image">Nuova immagine (opzionale)</label>
-      <input type="file" id="image" name="image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-accent file:text-white hover:file:bg-[#6a8ea0]">
+      <label class="block text-sm font-medium mb-1">Nuova immagine (opzionale)</label>
+      <div id="drop-zone"
+        class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-accent transition-colors">
+        <input type="file" id="image" name="image" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+        <div id="drop-placeholder">
+          <p class="text-2xl mb-1">🖼</p>
+          <p class="text-sm text-gray-500">Trascina un'immagine qui o <span class="text-accent underline">clicca per selezionare</span></p>
+        </div>
+        <div id="drop-preview" class="hidden flex-col items-center gap-2">
+          <img id="preview-img" src="" alt="Anteprima" class="max-h-40 rounded-lg object-contain border border-gray-200">
+          <p id="preview-name" class="text-xs text-gray-500"></p>
+          <button type="button" id="drop-clear" class="text-xs text-red-500 hover:underline">Rimuovi</button>
+        </div>
+      </div>
     </div>
 
     <div class="flex gap-3 pt-2">
