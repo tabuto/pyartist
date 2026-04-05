@@ -147,7 +147,7 @@
     filterTipo.addEventListener('change', function() {
       const val = this.value;
       document.querySelectorAll('.avail-item').forEach(li => {
-        li.hidden = val ? li.dataset.tipo !== val : false;
+        li.style.display = (val && li.dataset.tipo !== val) ? 'none' : '';
       });
       syncBulkBtn('avail-check', 'btn-add');
     });
