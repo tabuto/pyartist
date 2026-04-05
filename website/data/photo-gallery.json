@@ -1,0 +1,37 @@
+{
+  "gallery_name": "photo-gallery",
+  "categories": [
+    {
+      "name": "personalit",
+      "slug": "personalit",
+      "items": [
+        {
+          "title": "Sgarbi",
+          "category": "personalit",
+          "image": "https://res.cloudinary.com/ds8hmzyom/image/upload/f_auto,q_auto/v1775380283/pyartist/web/personalit/sgarbi-18.jpg",
+          "thumb": "https://res.cloudinary.com/ds8hmzyom/image/upload/f_auto,q_auto/v1775380284/pyartist/thumbs/personalit/thumb_sgarbi-18.jpg",
+          "details": "",
+          "formato": "",
+          "tecnica": "",
+          "descrizione": "Antonio Occhipinti con Vittorio Sgarbi"
+        }
+      ]
+    },
+    {
+      "name": "",
+      "slug": "",
+      "items": [
+        {
+          "title": "Consegna Ritratto a Papa Francesco",
+          "category": "",
+          "image": "https://res.cloudinary.com/ds8hmzyom/image/upload/f_auto,q_auto/v1775402900/pyartist/web/uncategorized/consegna-ritratto-a-papa-francesco-19.jpg",
+          "thumb": "https://res.cloudinary.com/ds8hmzyom/image/upload/f_auto,q_auto/v1775402901/pyartist/thumbs/uncategorized/thumb_consegna-ritratto-a-papa-francesco-19.jpg",
+          "details": "",
+          "formato": "",
+          "tecnica": "",
+          "descrizione": "Consegna Ritratto a Papa Francesco"
+        }
+      ]
+    }
+  ]
+}
