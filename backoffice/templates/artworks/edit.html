@@ -50,16 +50,18 @@
     });
 
     // ── Filtro categorie per tipo ───────────────────────────────────────────────
+    const sel = document.getElementById('category');
+    const _allOpts = [...sel.options]; // snapshot iniziale di tutte le option
+
     function filterCategories(tipo) {
-      const sel = document.getElementById('category');
-      [...sel.options].forEach(opt => {
-        if (!opt.value) return;
-        opt.hidden = opt.dataset.tipo !== tipo;
+      const currentVal = sel.value;
+      sel.innerHTML = '';
+      _allOpts.forEach(opt => {
+        if (!opt.value || opt.dataset.tipo === tipo) sel.appendChild(opt);
       });
-      if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].hidden) {
-        sel.value = '';
-      }
+      sel.value = [...sel.options].some(o => o.value === currentVal) ? currentVal : '';
     }
+
     const tipoSel = document.getElementById('tipo');
     if (tipoSel) {
       tipoSel.addEventListener('change', () => filterCategories(tipoSel.value));
