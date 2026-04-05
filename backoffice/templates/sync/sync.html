@@ -12,13 +12,19 @@
         <p class="text-sm text-gray-400 mt-0.5">{{ g.items | length }} opere · Aggiornata il {{ g.updated_at.strftime('%d/%m/%Y %H:%M') }}</p>
       </div>
     </div>
+    <label class="flex items-center gap-2 mb-4 cursor-pointer w-fit">
+      <input type="checkbox" id="include-img-{{ g.id }}" checked class="w-4 h-4 accent-[#7A9EB1]">
+      <span class="text-sm text-gray-600">Includi immagini</span>
+    </label>
     <div class="flex gap-3 flex-wrap">
-      <form action="{{ url_for('sync_panel.download_zip', gallery_id=g.id) }}" method="post">
+      <form action="{{ url_for('sync_panel.download_zip', gallery_id=g.id) }}" method="post"
+            onsubmit="injectInclude(this, {{ g.id }})">
         <button type="submit" class="flex items-center gap-2 border border-accent text-accent px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent hover:text-white transition-colors">
           ⬇ Scarica ZIP
         </button>
       </form>
-      <form action="{{ url_for('sync_panel.ftp_publish', gallery_id=g.id) }}" method="post" onsubmit="return confirm('Pubblicare {{ g.json_filename }} via FTP?')">
+      <form action="{{ url_for('sync_panel.ftp_publish', gallery_id=g.id) }}" method="post"
+            onsubmit="injectInclude(this, {{ g.id }}); return confirm('Pubblicare {{ g.json_filename }} via FTP?')">
         <button type="submit" class="flex items-center gap-2 bg-[#1A1A1A] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
           ↑ Pubblica via FTP
         </button>
@@ -31,4 +37,17 @@
   </div>
   {% endfor %}
 </div>
+<script>
+function injectInclude(form, gid) {
+  const cb = document.getElementById('include-img-' + gid);
+  let inp = form.querySelector('input[name="include_images"]');
+  if (!inp) {
+    inp = document.createElement('input');
+    inp.type = 'hidden';
+    inp.name = 'include_images';
+    form.appendChild(inp);
+  }
+  inp.value = (cb && cb.checked) ? '1' : '0';
+}
+</script>
 {% endblock %}

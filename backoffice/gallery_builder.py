@@ -56,7 +56,7 @@ def generate_gallery_json(gallery) -> dict:
     return data
 
 
-def build_zip(gallery) -> io.BytesIO:
+def build_zip(gallery, include_images: bool = True) -> io.BytesIO:
     """Build a ZIP archive with gallery.json + artwork images from Cloudinary.
 
     Struttura ZIP:
@@ -73,37 +73,38 @@ def build_zip(gallery) -> io.BytesIO:
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr(f"data/{json_filename}", json.dumps(gallery_data, ensure_ascii=False, indent=2))
 
-        for item in sorted(gallery.items, key=lambda i: i.position):
-            artwork = item.artwork
-            slug = _slugify(artwork.category)
-            title_slug = _slugify(artwork.title)
-            filename = f"{title_slug}-{artwork.id}"
+        if include_images:
+            for item in sorted(gallery.items, key=lambda i: i.position):
+                artwork = item.artwork
+                slug = _slugify(artwork.category)
+                title_slug = _slugify(artwork.title)
+                filename = f"{title_slug}-{artwork.id}"
 
-            if artwork.drive_file_id:
-                try:
-                    resp = requests.get(artwork.drive_file_id, timeout=30)
-                    resp.raise_for_status()
-                    zf.writestr(f"img/art/{slug}/{filename}.jpg", resp.content)
-                except Exception as exc:
-                    logger.warning(
-                        "Impossibile scaricare immagine %s per opera %s: %s",
-                        artwork.drive_file_id,
-                        artwork.id,
-                        exc,
-                    )
+                if artwork.drive_file_id:
+                    try:
+                        resp = requests.get(artwork.drive_file_id, timeout=30)
+                        resp.raise_for_status()
+                        zf.writestr(f"img/art/{slug}/{filename}.jpg", resp.content)
+                    except Exception as exc:
+                        logger.warning(
+                            "Impossibile scaricare immagine %s per opera %s: %s",
+                            artwork.drive_file_id,
+                            artwork.id,
+                            exc,
+                        )
 
-            if artwork.drive_thumb_id:
-                try:
-                    resp = requests.get(artwork.drive_thumb_id, timeout=30)
-                    resp.raise_for_status()
-                    zf.writestr(f"img/art/{slug}/thumb_{filename}.jpg", resp.content)
-                except Exception as exc:
-                    logger.warning(
-                        "Impossibile scaricare thumbnail %s per opera %s: %s",
-                        artwork.drive_thumb_id,
-                        artwork.id,
-                        exc,
-                    )
+                if artwork.drive_thumb_id:
+                    try:
+                        resp = requests.get(artwork.drive_thumb_id, timeout=30)
+                        resp.raise_for_status()
+                        zf.writestr(f"img/art/{slug}/thumb_{filename}.jpg", resp.content)
+                    except Exception as exc:
+                        logger.warning(
+                            "Impossibile scaricare thumbnail %s per opera %s: %s",
+                            artwork.drive_thumb_id,
+                            artwork.id,
+                            exc,
+                        )
 
     buf.seek(0)
     return buf

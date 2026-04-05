@@ -28,9 +28,10 @@ def sync():
 @login_required
 def download_zip(gallery_id):
     gallery = tdb.gallery_get(gallery_id)
+    include_images = request.form.get("include_images", "1") == "1"
     try:
         from gallery_builder import build_zip
-        buf = build_zip(gallery)
+        buf = build_zip(gallery, include_images=include_images)
     except Exception as exc:
         flash(f"Errore durante la generazione dello ZIP: {exc}", "error")
         return redirect(url_for("sync_panel.sync"))
@@ -47,6 +48,7 @@ def download_zip(gallery_id):
 @login_required
 def ftp_publish(gallery_id):
     gallery = tdb.gallery_get(gallery_id)
+    include_images = request.form.get("include_images", "1") == "1"
 
     try:
         from gallery_builder import generate_gallery_json, _slugify
@@ -69,39 +71,40 @@ def ftp_publish(gallery_id):
         # Scarica immagini da Cloudinary come stream HTTP
         images: list[tuple[io.BytesIO, str, str]] = []
 
-        for item in sorted(gallery.items, key=lambda i: i.position):
-            artwork = item.artwork
-            cat_slug = _slugify(artwork.category)
-            title_slug = _slugify(artwork.title)
-            base_name = f"{title_slug}-{artwork.id}"
+        if include_images:
+            for item in sorted(gallery.items, key=lambda i: i.position):
+                artwork = item.artwork
+                cat_slug = _slugify(artwork.category)
+                title_slug = _slugify(artwork.title)
+                base_name = f"{title_slug}-{artwork.id}"
 
-            if artwork.drive_file_id:
-                try:
-                    stream = _download_url(artwork.drive_file_id)
-                    images.append((stream, cat_slug, f"{base_name}.jpg"))
-                except Exception as exc:
-                    logger.warning(
-                        "FTP publish: impossibile scaricare immagine %s per opera %s: %s",
-                        artwork.drive_file_id, artwork.id, exc,
-                    )
-                    flash(
-                        f"Attenzione: immagine «{artwork.title}» non scaricata ({exc}).",
-                        "warning",
-                    )
+                if artwork.drive_file_id:
+                    try:
+                        stream = _download_url(artwork.drive_file_id)
+                        images.append((stream, cat_slug, f"{base_name}.jpg"))
+                    except Exception as exc:
+                        logger.warning(
+                            "FTP publish: impossibile scaricare immagine %s per opera %s: %s",
+                            artwork.drive_file_id, artwork.id, exc,
+                        )
+                        flash(
+                            f"Attenzione: immagine «{artwork.title}» non scaricata ({exc}).",
+                            "warning",
+                        )
 
-            if artwork.drive_thumb_id:
-                try:
-                    stream = _download_url(artwork.drive_thumb_id)
-                    images.append((stream, cat_slug, f"thumb_{base_name}.jpg"))
-                except Exception as exc:
-                    logger.warning(
-                        "FTP publish: impossibile scaricare thumbnail %s per opera %s: %s",
-                        artwork.drive_thumb_id, artwork.id, exc,
-                    )
-                    flash(
-                        f"Attenzione: thumbnail «{artwork.title}» non scaricata ({exc}).",
-                        "warning",
-                    )
+                if artwork.drive_thumb_id:
+                    try:
+                        stream = _download_url(artwork.drive_thumb_id)
+                        images.append((stream, cat_slug, f"thumb_{base_name}.jpg"))
+                    except Exception as exc:
+                        logger.warning(
+                            "FTP publish: impossibile scaricare thumbnail %s per opera %s: %s",
+                            artwork.drive_thumb_id, artwork.id, exc,
+                        )
+                        flash(
+                            f"Attenzione: thumbnail «{artwork.title}» non scaricata ({exc}).",
+                            "warning",
+                        )
 
         log = ftp_sync(gallery_json_bytes, images, gallery_json_path=ftp_gallery_json_path)
         errors = [e for e in log if e["status"] != "ok"]
