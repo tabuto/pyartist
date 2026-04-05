@@ -55,6 +55,7 @@ def upload():
         tecnica = request.form.get("tecnica", "").strip() or None
         descrizione = request.form.get("descrizione", "").strip() or None
         collezione = request.form.get("collezione", "").strip() or None
+        tipo = request.form.get("tipo", "artwork")
         file = request.files.get("image")
 
         if not title or not file or not _allowed(file.filename):
@@ -82,6 +83,7 @@ def upload():
             tecnica=tecnica,
             descrizione=descrizione,
             collezione=collezione,
+            tipo=tipo,
         )
 
         filename_base = f"{title_slug}-{artwork_id}"
@@ -151,6 +153,7 @@ def edit(id):
         new_tecnica = request.form.get("tecnica", "").strip() or None
         new_descrizione = request.form.get("descrizione", "").strip() or None
         new_collezione = request.form.get("collezione", "").strip() or None
+        new_tipo = request.form.get("tipo", getattr(artwork, "tipo", "artwork") or "artwork")
 
         updates = dict(
             title=new_title,
@@ -162,6 +165,7 @@ def edit(id):
             tecnica=new_tecnica,
             descrizione=new_descrizione,
             collezione=new_collezione,
+            tipo=new_tipo,
         )
 
         file = request.files.get("image")

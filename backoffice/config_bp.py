@@ -32,13 +32,14 @@ def index():
 def category_create():
     name = request.form.get("name", "").strip()
     slug = request.form.get("slug", "").strip() or slugify(name)
+    tipo = request.form.get("tipo", "artwork")
     if not name:
         flash("Il nome della categoria è obbligatorio.", "error")
     elif tdb.category_by_slug(slug):
         flash(f"Esiste già una categoria con slug «{slug}».", "error")
     else:
         max_pos = tdb.category_max_position()
-        tdb.category_create(name, slug, max_pos + 1)
+        tdb.category_create(name, slug, max_pos + 1, tipo=tipo)
         flash(f"Categoria «{name}» creata.", "success")
     return redirect(url_for("config.index") + "#categorie")
 
@@ -50,7 +51,8 @@ def edit_category(id):
     if request.method == "POST":
         new_name = request.form.get("label", cat.name).strip() or cat.name
         new_slug = request.form.get("slug", "").strip() or slugify(new_name)
-        tdb.category_update(id, new_name, new_slug)
+        new_tipo = request.form.get("tipo", getattr(cat, "tipo", "artwork") or "artwork")
+        tdb.category_update(id, new_name, new_slug, tipo=new_tipo)
         flash(f"Categoria «{new_name}» aggiornata.", "success")
         return redirect(url_for("config.index") + "#categorie")
     return render_template("config/edit_option.html", section="Categoria", item=cat,

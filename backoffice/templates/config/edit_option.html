@@ -15,6 +15,13 @@
       <input type="text" name="slug" value="{{ item.slug }}"
         class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
     </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Tipo</label>
+      <select name="tipo" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+        <option value="artwork" {% if (item.tipo or 'artwork') == 'artwork' %}selected{% endif %}>Artwork</option>
+        <option value="foto" {% if item.tipo == 'foto' %}selected{% endif %}>Foto</option>
+      </select>
+    </div>
     {% endif %}
     <div class="flex gap-3 pt-2">
       <button type="submit" class="bg-accent text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Salva</button>

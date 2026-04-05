@@ -19,6 +19,7 @@ class Artwork(db.Model):
     is_published = db.Column(db.Boolean, default=False)
     position = db.Column(db.Integer, default=0)
     descrizione = db.Column(db.Text, nullable=True)
+    tipo = db.Column(db.String(10), default='artwork')
 
     def to_dict(self):
         from turso_db import _get_optimized_url
@@ -39,9 +40,7 @@ class Category(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     slug = db.Column(db.String(100), unique=True, nullable=False)
     position = db.Column(db.Integer, default=0)
-
-
-class Gallery(db.Model):
+    tipo = db.Column(db.String(10), default='artwork')
     __tablename__ = "gallery"
 
     id = db.Column(db.Integer, primary_key=True)

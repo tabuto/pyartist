@@ -21,9 +21,9 @@ _AW_COLS = [
     "id", "title", "category", "year", "technique",
     "image_path", "thumb_path", "drive_file_id", "drive_thumb_id",
     "is_published", "position",
-    "formato", "tecnica", "descrizione", "collezione",
+    "formato", "tecnica", "descrizione", "collezione", "tipo",
 ]
-_CAT_COLS = ["id", "name", "slug", "position"]
+_CAT_COLS = ["id", "name", "slug", "position", "tipo"]
 _GAL_COLS = ["id", "name", "description", "created_at", "updated_at", "json_filename"]
 _GI_COLS  = ["id", "gallery_id", "artwork_id", "position"]
 _OPT_COLS = ["id", "label", "position"]
@@ -155,17 +155,17 @@ def artwork_create(
     title, category, year, technique,
     image_path, thumb_path, drive_file_id, drive_thumb_id,
     is_published, position,
-    formato=None, tecnica=None, descrizione=None, collezione=None,
+    formato=None, tecnica=None, descrizione=None, collezione=None, tipo="artwork",
 ) -> int:
     execute_write(
         "INSERT INTO artwork "
         "(title, category, year, technique, image_path, thumb_path, "
         "drive_file_id, drive_thumb_id, is_published, position, "
-        "formato, tecnica, descrizione, collezione) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "formato, tecnica, descrizione, collezione, tipo) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [title, category, year, technique, image_path, thumb_path,
          drive_file_id, drive_thumb_id, is_published, position,
-         formato, tecnica, descrizione, collezione],
+         formato, tecnica, descrizione, collezione, tipo],
     )
     return last_insert_id()
 
@@ -224,16 +224,16 @@ def category_max_position() -> int:
     return int(rows[0][0] or 0)
 
 
-def category_create(name: str, slug: str, position: int) -> int:
+def category_create(name: str, slug: str, position: int, tipo: str = "artwork") -> int:
     execute_write(
-        "INSERT INTO category (name, slug, position) VALUES (?, ?, ?)",
-        [name, slug, position],
+        "INSERT INTO category (name, slug, position, tipo) VALUES (?, ?, ?, ?)",
+        [name, slug, position, tipo],
     )
     return last_insert_id()
 
 
-def category_update(id: int, name: str, slug: str):
-    execute_write("UPDATE category SET name = ?, slug = ? WHERE id = ?", [name, slug, id])
+def category_update(id: int, name: str, slug: str, tipo: str = "artwork"):
+    execute_write("UPDATE category SET name = ?, slug = ?, tipo = ? WHERE id = ?", [name, slug, tipo, id])
 
 
 def category_delete(id: int):

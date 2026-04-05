@@ -1,10 +1,44 @@
 {% extends "base.html" %}
 {% block title %}Carica Opera — PyArtist{% endblock %}
+{% block head %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    function filterCategories(tipo) {
+      const sel = document.getElementById('category');
+      [...sel.options].forEach(opt => {
+        if (!opt.value) return; // mantieni "— nessuna —"
+        opt.hidden = opt.dataset.tipo !== tipo;
+      });
+      if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].hidden) {
+        sel.value = '';
+      }
+    }
+    document.querySelectorAll('input[name="tipo"]').forEach(r => {
+      r.addEventListener('change', () => filterCategories(r.value));
+    });
+    filterCategories('artwork');
+  });
+</script>
+{% endblock %}
 {% block content %}
 <div class="max-w-xl">
   <h1 class="font-display text-2xl font-semibold mb-6">Carica Opera</h1>
 
   <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
+    <div>
+      <label class="block text-sm font-medium mb-2">Tipo <span class="text-red-500">*</span></label>
+      <div class="flex gap-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="tipo" value="artwork" checked class="accent-[#7A9EB1]">
+          <span class="text-sm">Artwork</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="tipo" value="foto" class="accent-[#7A9EB1]">
+          <span class="text-sm">Foto</span>
+        </label>
+      </div>
+    </div>
+
     <div>
       <label class="block text-sm font-medium mb-1" for="title">Titolo <span class="text-red-500">*</span></label>
       <input type="text" id="title" name="title" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
@@ -15,7 +49,7 @@
       <select id="category" name="category" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
         <option value="">— nessuna —</option>
         {% for cat in categories %}
-        <option value="{{ cat.slug }}">{{ cat.name }}</option>
+        <option value="{{ cat.slug }}" data-tipo="{{ cat.tipo or 'artwork' }}">{{ cat.name }}</option>
         {% endfor %}
       </select>
     </div>

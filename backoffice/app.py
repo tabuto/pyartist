@@ -71,6 +71,19 @@ def _check_connectivity(app):
 
 
 
+def _run_migrations():
+    """Applica migrazioni DB idempotenti all'avvio."""
+    import turso_db as tdb
+    for sql in [
+        "ALTER TABLE artwork ADD COLUMN tipo TEXT DEFAULT 'artwork'",
+        "ALTER TABLE category ADD COLUMN tipo TEXT DEFAULT 'artwork'",
+    ]:
+        try:
+            tdb.execute_write(sql)
+        except Exception:
+            pass  # colonna già esistente
+
+
 def create_app():
     app = Flask(__name__)
 
@@ -101,6 +114,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _run_migrations()
 
     _check_connectivity(app)
 
