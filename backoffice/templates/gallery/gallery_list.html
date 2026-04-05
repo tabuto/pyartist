@@ -14,7 +14,7 @@
       {% if g.description %}<p class="text-sm text-gray-500 mt-1">{{ g.description }}</p>{% endif %}
       <div class="flex gap-4 mt-2 text-xs text-gray-400">
         <span>{{ g.items | length }} opere</span>
-        <span>Creata il {{ g.created_at.strftime('%d/%m/%Y') }}</span>
+        <span>Creata il {{ g.created_at.strftime('%d/%m/%Y') if g.created_at else '—' }}</span>
       </div>
     </div>
     <a href="{{ url_for('gallery.gallery_detail', id=g.id) }}" class="text-accent text-sm hover:underline shrink-0">Gestisci →</a>
