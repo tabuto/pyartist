@@ -26,7 +26,7 @@
     <div class="px-5 py-4 border-b border-gray-100 font-medium text-sm text-gray-600 flex items-center justify-between">
       <label class="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" id="select-all-items" class="w-4 h-4 accent-[#7A9EB1]">
-        <span>Opere in questa galleria</span>
+        <span>Media in questa galleria</span>
       </label>
       <div class="flex items-center gap-3">
         <span class="text-xs text-gray-400">Trascina per riordinare</span>
@@ -53,7 +53,7 @@
         </form>
       </li>
       {% else %}
-      <li class="px-5 py-6 text-center text-gray-400 text-sm">Nessuna opera aggiunta.</li>
+      <li class="px-5 py-6 text-center text-gray-400 text-sm">Nessun media aggiunto.</li>
       {% endfor %}
     </ul>
   </div>
@@ -63,7 +63,7 @@
     <div class="px-5 py-4 border-b border-gray-100 font-medium text-sm text-gray-600 flex items-center justify-between">
       <label class="flex items-center gap-2 cursor-pointer">
         <input type="checkbox" id="select-all-available" class="w-4 h-4 accent-[#7A9EB1]">
-        <span>Opere disponibili</span>
+        <span>Media disponibili</span>
       </label>
       <div class="flex items-center gap-2">
         <select id="filter-tipo" class="text-xs border border-gray-200 rounded px-2 py-1 text-gray-600 focus:outline-none">
@@ -93,7 +93,7 @@
         </form>
       </li>
       {% else %}
-      <li class="px-5 py-6 text-center text-gray-400 text-sm">Tutte le opere sono già in galleria.</li>
+      <li class="px-5 py-6 text-center text-gray-400 text-sm">Tutti i media sono già in galleria.</li>
       {% endfor %}
     </ul>
   </div>

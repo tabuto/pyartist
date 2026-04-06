@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Opere — PyArtist{% endblock %}
+{% block title %}Media — PyArtist{% endblock %}
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 {% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-  <h1 class="font-display text-2xl font-semibold">Opere</h1>
-  <a href="{{ url_for('artworks.upload') }}" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">+ Nuova Opera</a>
+  <h1 class="font-display text-2xl font-semibold">Media</h1>
+  <a href="{{ url_for('artworks.upload') }}" class="bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">+ Nuovo Media</a>
 </div>
 
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

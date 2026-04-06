@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Carica Opera — PyArtist{% endblock %}
+{% block title %}Carica Media — PyArtist{% endblock %}
 {% block head %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -24,7 +24,7 @@
 {% endblock %}
 {% block content %}
 <div class="max-w-xl">
-  <h1 class="font-display text-2xl font-semibold mb-6">Carica Opera</h1>
+  <h1 class="font-display text-2xl font-semibold mb-6">Carica Media</h1>
 
   <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-5">
     <div>
@@ -108,7 +108,7 @@
     </div>
 
     <div class="flex gap-3 pt-2">
-      <button type="submit" class="bg-accent text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Carica Opera</button>
+      <button type="submit" class="bg-accent text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-[#6a8ea0] transition-colors">Carica Media</button>
       <a href="{{ url_for('artworks.list_artworks') }}" class="border border-gray-300 text-gray-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Annulla</a>
     </div>
   </form>

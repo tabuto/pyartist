@@ -13,14 +13,14 @@
       <h2 class="font-display text-lg font-semibold">{{ g.name }}</h2>
       {% if g.description %}<p class="text-sm text-gray-500 mt-1">{{ g.description }}</p>{% endif %}
       <div class="flex gap-4 mt-2 text-xs text-gray-400">
-        <span>{{ g.items | length }} opere</span>
+        <span>{{ g.items | length }} media</span>
         <span>Creata il {{ g.created_at.strftime('%d/%m/%Y') if g.created_at else '—' }}</span>
       </div>
     </div>
     <div class="flex items-center gap-3 shrink-0">
       <a href="{{ url_for('gallery.gallery_detail', id=g.id) }}" class="text-accent text-sm hover:underline">Gestisci →</a>
       <form action="{{ url_for('gallery.delete_gallery', id=g.id) }}" method="post"
-            onsubmit="return confirm('Eliminare la galleria «{{ g.name }}»? Verranno rimossi tutti i collegamenti alle opere.')">
+            onsubmit="return confirm('Eliminare la galleria «{{ g.name }}»? Verranno rimossi tutti i collegamenti ai media.')">
         <button type="submit" class="text-red-500 text-sm hover:underline">Elimina</button>
       </form>
     </div>
