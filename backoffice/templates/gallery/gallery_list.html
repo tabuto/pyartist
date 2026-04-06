@@ -17,7 +17,13 @@
         <span>Creata il {{ g.created_at.strftime('%d/%m/%Y') if g.created_at else '—' }}</span>
       </div>
     </div>
-    <a href="{{ url_for('gallery.gallery_detail', id=g.id) }}" class="text-accent text-sm hover:underline shrink-0">Gestisci →</a>
+    <div class="flex items-center gap-3 shrink-0">
+      <a href="{{ url_for('gallery.gallery_detail', id=g.id) }}" class="text-accent text-sm hover:underline">Gestisci →</a>
+      <form action="{{ url_for('gallery.delete_gallery', id=g.id) }}" method="post"
+            onsubmit="return confirm('Eliminare la galleria «{{ g.name }}»? Verranno rimossi tutti i collegamenti alle opere.')">
+        <button type="submit" class="text-red-500 text-sm hover:underline">Elimina</button>
+      </form>
+    </div>
   </div>
   {% else %}
   <div class="text-center py-16 text-gray-400">

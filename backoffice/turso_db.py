@@ -303,6 +303,11 @@ def gallery_update(id: int, name: str, description: str | None, json_filename: s
     )
 
 
+def gallery_delete(id: int):
+    execute_write("DELETE FROM gallery_item WHERE gallery_id = ?", [id])
+    execute_write("DELETE FROM gallery WHERE id = ?", [id])
+
+
 def gallery_item_exists(gallery_id: int, artwork_id: int) -> bool:
     rows = execute(
         "SELECT 1 FROM gallery_item WHERE gallery_id = ? AND artwork_id = ? LIMIT 1",

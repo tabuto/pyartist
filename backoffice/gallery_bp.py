@@ -61,6 +61,15 @@ def edit_gallery(id):
     return render_template("gallery/edit_gallery.html", gallery=gallery)
 
 
+@gallery_bp.route("/<int:id>/delete", methods=["POST"])
+@login_required
+def delete_gallery(id):
+    gallery = tdb.gallery_get(id)
+    tdb.gallery_delete(id)
+    flash(f"Galleria «{gallery.name}» eliminata.", "success")
+    return redirect(url_for("gallery.gallery_list"))
+
+
 @gallery_bp.route("/<int:id>")
 @login_required
 def gallery_detail(id):
