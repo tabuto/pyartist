@@ -10,7 +10,7 @@ import logging
 import os
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 GALLERY_JSON_PATH = Path(__file__).parent.parent / "website" / "data" / "gallery.json"
 MAX_IMAGE_SIZE = 1920
@@ -20,9 +20,26 @@ JPEG_QUALITY = 85
 logger = logging.getLogger(__name__)
 
 
+def _prepare_image_for_jpeg(img: Image.Image) -> Image.Image:
+    """Applica orientamento EXIF e converte i mode non compatibili con JPEG."""
+    img = ImageOps.exif_transpose(img)
+
+    # JPEG non supporta alpha/palette: appiattiamo su sfondo bianco.
+    if img.mode in {"RGBA", "LA"} or (img.mode == "P" and "transparency" in img.info):
+        alpha = img.convert("RGBA")
+        background = Image.new("RGBA", alpha.size, (255, 255, 255, 255))
+        return Image.alpha_composite(background, alpha).convert("RGB")
+
+    if img.mode not in {"RGB", "L"}:
+        return img.convert("RGB")
+
+    return img
+
+
 def optimize_image(src_path: Path, dest_path: Path) -> Path:
     """Ridimensiona a max 1920px (lato lungo) e salva in JPEG qualità 85."""
     with Image.open(src_path) as img:
+        img = _prepare_image_for_jpeg(img)
         img.thumbnail((MAX_IMAGE_SIZE, MAX_IMAGE_SIZE), Image.LANCZOS)
         img.save(dest_path, format="JPEG", quality=JPEG_QUALITY, optimize=True)
     return dest_path
@@ -31,6 +48,7 @@ def optimize_image(src_path: Path, dest_path: Path) -> Path:
 def generate_thumbnail(src_path: Path, dest_path: Path) -> Path:
     """Genera una thumbnail a max 400px."""
     with Image.open(src_path) as img:
+        img = _prepare_image_for_jpeg(img)
         img.thumbnail((MAX_THUMB_SIZE, MAX_THUMB_SIZE), Image.LANCZOS)
         img.save(dest_path, format="JPEG", quality=JPEG_QUALITY, optimize=True)
     return dest_path
